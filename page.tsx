@@ -1,253 +1,327 @@
-<div style={{ fontSize: "12px", color: "#64748b", marginBottom: "12px" }}>
-            Visualización geoespacial de incidentes registrados y zonas de vigilancia prioritaria.
+"use client";
+
+import { useState, useEffect } from "react";
+
+type NivelAlerta = "Informativo" | "Moderado" | "Alto" | "Crítico";
+
+type Registro = {
+  id: number;
+  titulo: string;
+  subtitulo?: string;
+  puntosClave?: string;
+  categoria: string;
+  fecha: string;
+  descripcion: string;
+  fuente?: string;
+  url?: string;
+  ubicacion?: string;
+  latitud?: number;
+  longitud?: number;
+  imagen?: string;
+  alerta?: NivelAlerta;
+};
+
+type ItemRSS = {
+  title: string;
+  pubDate: string;
+  link: string;
+  description: string;
+  author?: string;
+  thumbnail?: string;
+  enclosure?: { link?: string };
+  fuenteNombre?: string;
+};
+
+const CATEGORIAS_OSINT = [
+  "Inteligencia y seguridad",
+  "Delitos transnacionales",
+  "Fronteras y transporte",
+  "Justicia y jurisprudencia",
+  "Gobierno y política",
+  "Geopolítica e internacional",
+  "Ambiente y emergencias",
+  "Intereses estratégicos",
+  "Otro",
+];
+
+const NIVELES_ALERTA: NivelAlerta[] = ["Informativo", "Moderado", "Alto", "Crítico"];
+
+const UBICACIONES_REFERENCIA = [
+  { nombre: "Corrientes / Paraguay (Paso Ituzaingó)", lat: -27.5852, lng: -56.6853 },
+  { nombre: "Puerto Iguazú (Paso Tancredo Neves)", lat: -25.5973, lng: -54.5781 },
+  { nombre: "Vaca Muerta (Neuquén)", lat: -38.5411, lng: -68.7831 },
+  { nombre: "La Quiaca, Jujuy", lat: -22.1023, lng: -65.5982 },
+  { nombre: "Paso de los Libres, Corrientes", lat: -29.7161, lng: -57.0864 },
+  { nombre: "Posadas, Misiones", lat: -27.3671, lng: -55.8961 },
+  { nombre: "Bariloche, Río Negro", lat: -41.1335, lng: -71.3103 },
+  { nombre: "Buenos Aires, CABA", lat: -34.6037, lng: -58.3816 },
+];
+
+const TEMAS_OSINT_SUGERIDOS = [
+  "Drones",
+  "Inteligencia Artificial",
+  "Ciberterrorismo",
+  "Triple Frontera",
+  "Narcotráfico",
+  "Contrabando",
+  "Seguridad Fronteriza",
+  "Hezbollah",
+  "Vaca Muerta",
+  "Movimiento Mapuche",
+  "Resistencia Ancestral Mapuche",
+  "Antifascistas",
+  "LAVADO DE ACTIVOS",
+];
+
+const BANCO_IMAGENES = [
+  "https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1579532537598-459ecdaf39cc?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1521295121783-8a321d551ad2?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=600&q=80",
+];
+
+const NOTICIAS_SEMILLA: Registro[] = [
+  {
+    id: 101,
+    titulo: "Detección de Vuelos de Drones No Autorizados en Zonas Operativas de Frontera",
+    subtitulo: "Incursiones aéreas registradas en pasos estables de Jujuy y Salta",
+    puntosClave: "• Drones no identificados en franja limítrofe.\n• Activación de sensores de radar táctico.\n• Refuerzo de puestos de control terrestre.",
+    categoria: "Inteligencia y seguridad",
+    fecha: "2026-10-19",
+    descripcion: "Sistemas de vigilancia y radar de alerta temprana registraron incursiones aéreas no identificadas en franjas fronterizas limítrofes. Se intensifican los controles en pasos estratégicos y patrullajes de prevención coordinados.",
+    fuente: "Monitor OSINT GEND-INTEL",
+    ubicacion: "La Quiaca, Jujuy",
+    latitud: -22.1023,
+    longitud: -65.5982,
+    imagen: BANCO_IMAGENES[0],
+    alerta: "Alto",
+  },
+  {
+    id: 102,
+    titulo: "Refuerzo Operativo en Pasos Internacionales de la Triple Frontera",
+    subtitulo: "Medidas coordinadas de fiscalización en confluencia fluvial",
+    puntosClave: "• Inspección aduanera y migratoria.\n• Monitoreo de pasos no habilitados.\n• Enlace de datos de inteligencia abierta.",
+    categoria: "Delitos transnacionales",
+    fecha: "2026-10-19",
+    descripcion: "Alertas de inteligencia abierta indican un incremento en los patrullajes e inspecciones de fiscalización aduanera en la confluencia entre Argentina, Brasil y Paraguay a fin de prevenir actividades de contrabando y tráfico ilícito.",
+    fuente: "Fuentes Abiertas Regionales",
+    ubicacion: "Puerto Iguazú (Misiones)",
+    latitud: -25.5973,
+    longitud: -54.5781,
+    imagen: BANCO_IMAGENES[1],
+    alerta: "Moderado",
+  },
+];
+
+export default function Home() {
+  const [registros, setRegistros] = useState<Registro[]>([]);
+  const [montado, setMontado] = useState(false);
+  const [reloj, setReloj] = useState<string>("");
+
+  const [noticiaAmpliada, setNoticiaAmpliada] = useState<Registro | null>(null);
+
+  const [titulo, setTitulo] = useState("");
+  const [subtitulo, setSubtitulo] = useState("");
+  const [puntosClave, setPuntosClave] = useState("");
+  const [categoria, setCategoria] = useState("Inteligencia y seguridad");
+  const [fecha, setFecha] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [fuente, setFuente] = useState("");
+  const [url, setUrl] = useState("");
+  const [ubicacion, setUbicacion] = useState("");
+  const [latitud, setLatitud] = useState<string>("");
+  const [longitud, setLongitud] = useState<string>("");
+  const [imagen, setImagen] = useState("");
+  const [alerta, setAlerta] = useState<NivelAlerta>("Informativo");
+
+  const [mensaje, setMensaje] = useState("");
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [modoEdicion, setModoEdicion] = useState(false);
+
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroCategoria, setFiltroCategoria] = useState("");
+  const [filtroFecha, setFiltroFecha] = useState("");
+  const [filtroAlerta, setFiltroAlerta] = useState("");
+
+  const [palabraClaveOSINT, setPalabraClaveOSINT] = useState("Fronteras");
+  const [itemsRSS, setItemsRSS] = useState<ItemRSS[]>([]);
+  const [cargandoRSS, setCargandoRSS] = useState(false);
+  const [errorRSS, setErrorRSS] = useState("");
+
+  useEffect(() => {
+    const actualizarReloj = () => {
+      const ahora = new Date();
+      setReloj(ahora.toLocaleString("es-AR", { dateStyle: "medium", timeStyle: "medium" }));
+    };
+    actualizarReloj();
+    const interval = setInterval(actualizarReloj, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    setMontado(true);
+    setFecha(new Date().toISOString().slice(0, 10));
+
+    try {
+      const guardados = localStorage.getItem("gend-intel-registros-v8");
+      if (guardados && JSON.parse(guardados).length > 0) {
+        setRegistros(JSON.parse(guardados));
+      } else {
+        setRegistros(NOTICIAS_SEMILLA);
+      }
+    } catch (e) {
+      setRegistros(NOTICIAS_SEMILLA);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!montado) return;
+    const intervaloAutoSondeo = setInterval(() => {
+      consultarGoogleNoticiasArg("Seguridad Fronteriza");
+    }, 10 * 60 * 1000);
+
+    return () => clearInterval(intervaloAutoSondeo);
+  }, [montado]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    if (!document.getElementById("leaflet-css")) {
+      const link = document.createElement("link");
+      link.id = "leaflet-css";
+      link.rel = "stylesheet";
+      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(link);
+    }
+
+    if (!document.getElementById("leaflet-js")) {
+      const script = document.createElement("script");
+      script.id = "leaflet-js";
+      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      script.onload = () => inicializarMapa();
+      document.head.appendChild(script);
+    } else {
+      inicializarMapa();
+    }
+  }, [registros, montado]);
+
+  useEffect(() => {
+    if (montado) {
+      localStorage.setItem("gend-intel-registros-v8", JSON.stringify(registros));
+    }
+  }, [registros, montado]);
+
+  function inicializarMapa() {
+    if (typeof window === "undefined" || !(window as any).L) return;
+    const L = (window as any).L;
+    const container = document.getElementById("mapa-osint");
+    if (!container) return;
+
+    if ((container as any)._leaflet_id) {
+      (container as any)._leaflet_id = null;
+      container.innerHTML = "";
+    }
+
+    const map = L.map("mapa-osint").setView([-38.4161, -63.6167], 4);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap | <strong>ENFOQUE 360 Operativo - Autor: A.S.C. 187</strong>',
+    }).addTo(map);
+
+    const obtenerColor = (a?: NivelAlerta) => {
+      switch (a) {
+        case "Crítico": return "#dc2626";
+        case "Alto": return "#ea580c";
+        case "Moderado": return "#ca8a04";
+        default: return "#16a34a";
+      }
+    };
+
+    registros.forEach((reg) => {
+      if (reg.latitud && reg.longitud) {
+        const color = obtenerColor(reg.alerta);
+        const customIcon = L.divIcon({
+          className: "custom-pin",
+          html: `<div style="background-color:${color}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>`,
+          iconSize: [14, 14],
+          iconAnchor: [7, 7],
+        });
+
+        const popupContent = `
+          <div style="font-family: Arial, sans-serif; font-size: 12px; width: 210px;">
+            ${reg.imagen ? `<img src="${reg.imagen}" style="width:100%; height:90px; object-fit:cover; border-radius:4px; margin-bottom:6px;"/>` : ""}
+            <strong style="color:#0f172a; font-size:13px;">${reg.titulo}</strong>
+            <p style="margin:4px 0; color:#475569;">${reg.descripcion.slice(0, 80)}...</p>
+            <div style="margin-top:6px; font-size:11px; color:#64748b;">
+              📍 ${reg.ubicacion || "Ubicación Geográfica"}<br/>
+              🚨 Alerta: <strong>${reg.alerta || "Informativo"}</strong>
+            </div>
+            ${reg.url ? `<a href="${reg.url}" target="_blank" style="display:inline-block; margin-top:6px; color:#0284c7; font-weight:bold;">Fuente 🔗</a>` : ""}
           </div>
-          <div id="mapa-osint" style={{ width: "100%", height: "400px", borderRadius: "4px", border: "1px solid #cbd5e1" }}></div>
-        </section>
+        `;
 
-        {/* INGESTA EXTERNA RSS */}
-        <section id="modulo-ingesta" style={{ background: "#ffffff", padding: "20px", borderRadius: "6px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", marginBottom: "20px" }}>
-          <h2 style={{ fontSize: "15px", margin: "0 0 10px", color: "#0f172a", textTransform: "uppercase", fontWeight: "700" }}>
-            🌐 Ingesta Externa Automática (Google Noticias Arg)
-          </h2>
-          <p style={{ fontSize: "13px", color: "#475569", margin: "0 0 14px" }}>
-            Seleccione un término estratégico o ingrese palabras clave para monitorear fuentes abiertas en tiempo real e integrarlas con un clic.
-          </p>
+        L.marker([reg.latitud, reg.longitud], { icon: customIcon })
+          .addTo(map)
+          .bindPopup(popupContent);
+      }
+    });
+  }
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "14px" }}>
-            {TEMAS_OSINT_SUGERIDOS.map((tema, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => {
-                  setPalabraClaveOSINT(tema);
-                  consultarGoogleNoticiasArg(tema);
-                }}
-                style={{
-                  background: palabraClaveOSINT === tema ? "#14362b" : "#f1f5f9",
-                  color: palabraClaveOSINT === tema ? "#ffffff" : "#334155",
-                  border: "1px solid #cbd5e1",
-                  padding: "5px 10px",
-                  borderRadius: "4px",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                  fontWeight: "600",
-                }}
-              >
-                {tema}
-              </button>
-            ))}
-          </div>
+  async function consultarGoogleNoticiasArg(palabraOverride?: string) {
+    const termino = palabraOverride !== undefined ? palabraOverride : palabraClaveOSINT;
+    setCargandoRSS(true);
+    setErrorRSS("");
+    setItemsRSS([]);
 
-          <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-            <input
-              style={{ ...campoEstilo, margin: 0 }}
-              value={palabraClaveOSINT}
-              onChange={(e) => setPalabraClaveOSINT(e.target.value)}
-              placeholder="Término de sondeo externo..."
-            />
-            <button
-              type="button"
-              onClick={() => consultarGoogleNoticiasArg()}
-              style={botonInstitucional}
-            >
-              {cargandoRSS ? "Sondeando..." : "Consultar Fuentes"}
-            </button>
-          </div>
+    const googleRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(termino)}&hl=es-419&gl=AR&ceid=AR:es-419`;
 
-          {errorRSS && <p style={{ color: "#dc2626", fontSize: "13px" }}>{errorRSS}</p>}
+    try {
+      const apiEndpoint = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(googleRssUrl)}`;
+      const res = await fetch(apiEndpoint);
+      const data = await res.json();
 
-          {itemsRSS.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "350px", overflowY: "auto", border: "1px solid #e2e8f0", padding: "10px", borderRadius: "4px", background: "#f8fafc" }}>
-              {itemsRSS.map((item, idx) => (
-                <div key={idx} style={{ background: "#ffffff", padding: "10px", borderRadius: "4px", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <strong style={{ fontSize: "13px", color: "#0f172a", display: "block", marginBottom: "3px" }}>{item.title}</strong>
-                    <span style={{ fontSize: "11px", color: "#64748b" }}>{item.pubDate} • {item.author}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => publicarDirectoDesdeRSS(item)}
-                    style={{ ...botonInstitucional, background: "#16a34a", whiteSpace: "nowrap", padding: "6px 10px", fontSize: "11px" }}
-                  >
-                    📥 Integrar al Feed
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+      if (data.status === "ok" && data.items && data.items.length > 0) {
+        const mapeados = data.items.map((it: any) => ({
+          title: it.title,
+          pubDate: it.pubDate,
+          link: it.link,
+          description: it.description,
+          author: it.author || "Google Noticias Arg",
+          fuenteNombre: "Google Noticias Arg",
+          thumbnail: it.thumbnail || "",
+        }));
+        setItemsRSS(mapeados);
+      } else {
+        setErrorRSS(`No se encontraron registros para "${termino}".`);
+      }
+    } catch {
+      setErrorRSS("Error al consultar fuentes externas.");
+    } finally {
+      setCargandoRSS(false);
+    }
+  }
 
-        {/* REGISTRO MANUAL */}
-        <section id="modulo-investigacion" style={{ background: "#ffffff", padding: "20px", borderRadius: "6px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-          <h2 style={{ fontSize: "15px", margin: "0 0 10px", color: "#0f172a", textTransform: "uppercase", fontWeight: "700" }}>
-            {modoEdicion ? "✏️ Editar Registro Operativo" : "✍️ Registro Manual de Inteligencia"}
-          </h2>
-          <p style={{ fontSize: "13px", color: "#475569", margin: "0 0 14px" }}>
-            Complete los campos requeridos para asentar un nuevo reporte o incidencia en la plataforma.
-          </p>
+  function obtenerImagenUnica(id: number, texto: string): string {
+    const t = texto.toLowerCase();
+    if (t.includes("dron")) return BANCO_IMAGENES[0];
+    if (t.includes("triple") || t.includes("iguazú") || t.includes("rio") || t.includes("frontera")) return BANCO_IMAGENES[1];
+    if (t.includes("ciber") || t.includes("hack") || t.includes("inteligencia")) return BANCO_IMAGENES[2];
+    if (t.includes("petroleo") || t.includes("vaca muerta") || t.includes("combustible")) return BANCO_IMAGENES[3];
+    if (t.includes("policia") || t.includes("gendarmeria") || t.includes("control") || t.includes("operativo")) return BANCO_IMAGENES[4];
 
-          {mensaje && (
-            <div style={{ padding: "10px", background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#166534", borderRadius: "4px", fontSize: "13px", marginBottom: "14px", fontWeight: "600" }}>
-              {mensaje}
-            </div>
-          )}
+    const indice = Math.abs(id) % BANCO_IMAGENES.length;
+    return BANCO_IMAGENES[indice];
+  }
 
-          <form onSubmit={registrar} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div>
-                <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>Título del Reporte *</label>
-                <input style={campoEstilo} value={titulo} onChange={(e) => setTitulo(e.target.value)} required placeholder="Ej: Operativo preventivo..." />
-              </div>
-              <div>
-                <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>Subtítulo / Bajada</label>
-                <input style={campoEstilo} value={subtitulo} onChange={(e) => setSubtitulo(e.target.value)} placeholder="Breve síntesis complementaria..." />
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
-              <div>
-                <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>Categoría</label>
-                <select style={campoEstilo} value={categoria} onChange={(e) => setCategoria(e.target.value)}>
-                  {CATEGORIAS_OSINT.map((cat, idx) => (
-                    <option key={idx} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>Nivel de Alerta</label>
-                <select style={campoEstilo} value={alerta} onChange={(e) => setAlerta(e.target.value as NivelAlerta)}>
-                  {NIVELES_ALERTA.map((al, idx) => (
-                    <option key={idx} value={al}>{al}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>Fecha</label>
-                <input type="date" style={campoEstilo} value={fecha} onChange={(e) => setFecha(e.target.value)} required />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>Descripción / Análisis *</label>
-              <textarea style={{ ...campoEstilo, height: "90px", resize: "vertical" }} value={descripcion} onChange={(e) => setDescripcion(e.target.value)} required placeholder="Desarrollo de la información o síntesis de inteligencia..." />
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div>
-                <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>Fuente de Información</label>
-                <input style={campoEstilo} value={fuente} onChange={(e) => setFuente(e.target.value)} placeholder="Ej: Monitor OSINT / Diario Oficial..." />
-              </div>
-              <div>
-                <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>URL de Referencia (Enlace)</label>
-                <input type="url" style={campoEstilo} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155", display: "block", marginBottom: "4px" }}>Selección Rápida de Ubicación Geográfica</label>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "8px" }}>
-                {UBICACIONES_REFERENCIA.map((ref, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => seleccionarReferencia(ref)}
-                    style={{ background: "#f1f5f9", border: "1px solid #cbd5e1", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", cursor: "pointer", fontWeight: "600", color: "#334155" }}
-                  >
-                    📍 {ref.nombre}
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "8px" }}>
-                <input style={campoEstilo} value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} placeholder="Ubicación o Zona..." />
-                <input style={campoEstilo} value={latitud} onChange={(e) => setLatitud(e.target.value)} placeholder="Latitud (-27.5)" />
-                <input style={campoEstilo} value={longitud} onChange={(e) => setLongitud(e.target.value)} placeholder="Longitud (-56.6)" />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>URL de Imagen Opcional (Dejar en blanco para asignación inteligente)</label>
-              <input type="url" style={campoEstilo} value={imagen} onChange={(e) => setImagen(e.target.value)} placeholder="https://..." />
-            </div>
-
-            <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
-              <button type="submit" style={botonInstitucional}>
-                {modoEdicion ? "Actualizar Registro" : "Guardar en la Plataforma"}
-              </button>
-              {modoEdicion && (
-                <button type="button" onClick={cancelarEdicion} style={botonGris}>
-                  Cancelar Edición
-                </button>
-              )}
-            </div>
-          </form>
-        </section>
-
-      </main>
-    </div>
-
-    {/* MODAL AMPLIAR NOTICIA */}
-    {noticiaAmpliada && (
-      <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, padding: "20px" }}>
-        <div style={{ background: "#ffffff", maxWidth: "700px", width: "100%", borderRadius: "6px", overflow: "hidden", boxShadow: "0 10px 25px rgba(0,0,0,0.2)", border: "1px solid #cbd5e1", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
-          <div style={{ background: "#0c231d", color: "#ffffff", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: "12px", background: "#14362b", padding: "3px 8px", borderRadius: "4px", fontWeight: "bold", color: "#4ade80" }}>
-              {noticiaAmpliada.categoria}
-            </span>
-            <button type="button" onClick={() => setNoticiaAmpliada(null)} style={{ background: "none", border: "none", color: "#ffffff", fontSize: "18px", cursor: "pointer", fontWeight: "bold" }}>
-              ✕
-            </button>
-          </div>
-
-          <div style={{ padding: "20px", overflowY: "auto", flex: 1 }}>
-            {noticiaAmpliada.imagen && (
-              <div style={{ width: "100%", height: "240px", borderRadius: "4px", overflow: "hidden", marginBottom: "16px", border: "1px solid #cbd5e1" }}>
-                <img src={noticiaAmpliada.imagen} alt={noticiaAmpliada.titulo} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              </div>
-            )}
-
-            <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "8px" }}>
-              <span style={{ fontSize: "11px", color: "#64748b" }}>📅 {noticiaAmpliada.fecha}</span>
-              {noticiaAmpliada.fuente && <span style={{ fontSize: "11px", color: "#64748b" }}>• Fuente: {noticiaAmpliada.fuente}</span>}
-            </div>
-
-            <h2 style={{ fontSize: "20px", color: "#0f172a", margin: "0 0 10px", fontWeight: "700", lineHeight: "1.3" }}>
-              {noticiaAmpliada.titulo}
-            </h2>
-
-            {noticiaAmpliada.subtitulo && (
-              <h3 style={{ fontSize: "14px", color: "#334155", margin: "0 0 14px", fontWeight: "600" }}>
-                {noticiaAmpliada.subtitulo}
-              </h3>
-            )}
-
-            <div style={{ background: "#f8fafc", padding: "14px", borderRadius: "4px", border: "1px solid #e2e8f0", marginBottom: "14px", fontSize: "14px", lineHeight: "1.6", color: "#334155" }}>
-              {noticiaAmpliada.descripcion}
-            </div>
-
-            {noticiaAmpliada.puntosClave && (
-              <div style={{ background: "#fefce8", padding: "12px", borderRadius: "4px", border: "1px solid #fef08a", marginBottom: "14px", fontSize: "13px", color: "#713f12", whiteSpace: "pre-line" }}>
-                <strong>Puntos Clave / Síntesis:</strong>
-                <div style={{ marginTop: "4px" }}>{noticiaAmpliada.puntosClave}</div>
-              </div>
-            )}
-
-            <div style={{ fontSize: "13px", color: "#047857", fontWeight: "600", marginBottom: "14px" }}>
-              📍 Ubicación: {noticiaAmpliada.ubicacion || "Ámbito Nacional"}
-            </div>
-
-            {noticiaAmpliada.url && (
-              <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "12px" }}>
-                <a href={noticiaAmpliada.url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", background: "#0284c7", color: "#ffffff", padding: "8px 14px", borderRadius: "4px", textDecoration: "none", fontSize: "13px", fontWeight: "bold" }}>
-                  🔗 Acceder a la Fuente Externa
-                </a>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    )}
-
-  </div>
-);
-}
+  function determinarNivelAlerta(texto: string): NivelAlerta {
+    const t = texto.toLowerCase();
+    if (t.includes("ataque") || t.includes("atentado") || t.includes("urgente")) return "Crítico";
+    if (t.includes("dron") || t.includes("hezbollah") || t.includes("incautacion")) return "Alto";
+    if (t.includes
