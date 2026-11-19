@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-
-type NivelAlerta = "Informativo" | "Moderado" | "Alto" | "Crítico";
+import React, { useState, useEffect } from "react";
 
 type Registro = {
   id: number;
@@ -10,67 +8,54 @@ type Registro = {
   subtitulo?: string;
   puntosClave?: string;
   categoria: string;
+  regionRIP?: string;
+  jurisdiccion?: string;
   fecha: string;
   descripcion: string;
+  que?: string;
+  quien?: string;
+  cuando?: string;
+  como?: string;
+  donde?: string;
   fuente?: string;
   url?: string;
   ubicacion?: string;
-  latitud?: number;
-  longitud?: number;
   imagen?: string;
-  alerta?: NivelAlerta;
 };
 
-type ItemRSS = {
-  title: string;
-  pubDate: string;
-  link: string;
-  description: string;
-  author?: string;
-  thumbnail?: string;
-  enclosure?: { link?: string };
-  fuenteNombre?: string;
-};
-
-const CATEGORIAS_OSINT = [
-  "Inteligencia y seguridad",
-  "Delitos transnacionales",
-  "Fronteras y transporte",
-  "Justicia y jurisprudencia",
-  "Gobierno y política",
-  "Geopolítica e internacional",
-  "Ambiente y emergencias",
-  "Intereses estratégicos",
-  "Otro",
+const DIMENSIONES_INFORMATIVAS = [
+  "Todas las Dimensiones",
+  "Narcotráfico",
+  "Terrorismo",
+  "Geopolítica",
+  "Alteración Orden Público / Protestas",
 ];
 
-const NIVELES_ALERTA: NivelAlerta[] = ["Informativo", "Moderado", "Alto", "Crítico"];
+const ESTRUCTURA_TERRITORIAL = [
+  "Todas las Regiones",
+  "Región Noreste",
+  "Región Noroeste",
+  "Región Centro",
+  "Región Cuyo",
+  "Región Patagónica",
+  "CABA y Provincia de Buenos Aires",
+  "Ámbito Nacional",
+  "Ámbito Externo",
+];
 
 const UBICACIONES_REFERENCIA = [
-  { nombre: "Corrientes / Paraguay (Paso Ituzaingó)", lat: -27.5852, lng: -56.6853 },
-  { nombre: "Puerto Iguazú (Paso Tancredo Neves)", lat: -25.5973, lng: -54.5781 },
-  { nombre: "Vaca Muerta (Neuquén)", lat: -38.5411, lng: -68.7831 },
-  { nombre: "La Quiaca, Jujuy", lat: -22.1023, lng: -65.5982 },
-  { nombre: "Paso de los Libres, Corrientes", lat: -29.7161, lng: -57.0864 },
-  { nombre: "Posadas, Misiones", lat: -27.3671, lng: -55.8961 },
-  { nombre: "Bariloche, Río Negro", lat: -41.1335, lng: -71.3103 },
-  { nombre: "Buenos Aires, CABA", lat: -34.6037, lng: -58.3816 },
-];
-
-const TEMAS_OSINT_SUGERIDOS = [
-  "Drones",
-  "Inteligencia Artificial",
-  "Ciberterrorismo",
-  "Triple Frontera",
-  "Narcotráfico",
-  "Contrabando",
-  "Seguridad Fronteriza",
-  "Hezbollah",
-  "Vaca Muerta",
-  "Movimiento Mapuche",
-  "Resistencia Ancestral Mapuche",
-  "Antifascistas",
-  "LAVADO DE ACTIVOS",
+  { nombre: "Misiones — General Urquiza", region: "Región Noreste", jur: "MISIONES" },
+  { nombre: "Misiones — Posadas", region: "Región Noreste", jur: "MISIONES" },
+  { nombre: "Misiones — Puerto Iguazú", region: "Región Noreste", jur: "MISIONES" },
+  { nombre: "Chaco — Sáenz Peña", region: "Región Noreste", jur: "CHACO" },
+  { nombre: "Jujuy — RN 9 / RN 34", region: "Región Noroeste", jur: "JUJUY" },
+  { nombre: "Tucumán — Límite con Santiago del Estero", region: "Región Noroeste", jur: "TUCUMÁN" },
+  { nombre: "Santa Fe — Rafaela (RN 34)", region: "Región Centro", jur: "SANTA FE" },
+  { nombre: "Mendoza — Ciudad", region: "Región Cuyo", jur: "MENDOZA" },
+  { nombre: "Neuquén — Centenario / Villa La Angostura", region: "Región Patagónica", jur: "NEUQUÉN" },
+  { nombre: "CABA — Barrio Zavaleta / Belgrano", region: "CABA y Provincia de Buenos Aires", jur: "CABA" },
+  { nombre: "Ámbito Nacional — Argentina", region: "Ámbito Nacional", jur: "ARGENTINA" },
+  { nombre: "Ámbito Externo — Frontera / Internacional", region: "Ámbito Externo", jur: "EXTERIOR" },
 ];
 
 const BANCO_IMAGENES = [
@@ -82,77 +67,207 @@ const BANCO_IMAGENES = [
   "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80",
   "https://images.unsplash.com/photo-1579532537598-459ecdaf39cc?auto=format&fit=crop&w=600&q=80",
   "https://images.unsplash.com/photo-1521295121783-8a321d551ad2?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=600&q=80",
 ];
 
 const NOTICIAS_SEMILLA: Registro[] = [
   {
-    id: 101,
-    titulo: "Detección de Vuelos de Drones No Autorizados en Zonas Operativas de Frontera",
-    subtitulo: "Incursiones aéreas registradas en pasos estables de Jujuy y Salta",
-    puntosClave: "• Drones no identificados en franja limítrofe.\n• Activación de sensores de radar táctico.\n• Refuerzo de puestos de control terrestre.",
-    categoria: "Inteligencia y seguridad",
-    fecha: "2026-10-19",
-    descripcion: "Sistemas de vigilancia y radar de alerta temprana registraron incursiones aéreas no identificadas en franjas fronterizas limítrofes. Se intensifican los controles en pasos estratégicos y patrullajes de prevención coordinados.",
-    fuente: "Monitor OSINT ENFOQUE 360",
-    ubicacion: "La Quiaca, Jujuy",
-    latitud: -22.1023,
-    longitud: -65.5982,
-    imagen: BANCO_IMAGENES[0],
-    alerta: "Alto",
+    id: 301,
+    titulo: "DOS HOMBRES FUERON SORPRENDIDOS MIENTRAS CARGABAN MARIHUANA EN ZONA RIBEREÑA",
+    categoria: "Narcotráfico",
+    regionRIP: "Región Noreste",
+    jurisdiccion: "MISIONES",
+    fecha: "2026-11-19",
+    descripcion:
+      "Efectivos dependientes del Escuadrón en zonas aledañas al río secuestraron bultos con marihuana que fueron abandonados por dos personas que, al advertir la presencia de los uniformados, se deshicieron de la carga y huyeron.",
+    que: "Secuestro de bultos con marihuana abandonados tras un control ribereño.",
+    quien: "Dos personas no identificadas que escaparon y personal de control operativo.",
+    cuando: "19 de noviembre de 2026.",
+    como: "Abandonaron la carga al notar la presencia de los uniformados durante un patrullaje.",
+    donde: "General Urquiza, Misiones (zona cercana al río).",
+    fuente: "Monitor ENFOQUE 360",
+    url: "https://misionesonline.net/",
+    ubicacion: "General Urquiza, Misiones",
+    imagen: BANCO_IMAGENES[4],
   },
   {
-    id: 102,
-    titulo: "Refuerzo Operativo en Pasos Internacionales de la Triple Frontera",
-    subtitulo: "Medidas coordinadas de fiscalización en confluencia fluvial",
-    puntosClave: "• Inspección aduanera y migratoria.\n• Monitoreo de pasos no habilitados.\n• Enlace de datos de inteligencia abierta.",
-    categoria: "Delitos transnacionales",
-    fecha: "2026-10-19",
-    descripcion: "Alertas de inteligencia abierta indican un incremento en los patrullajes e inspecciones de fiscalización aduanera en la confluencia entre Argentina, Brasil y Paraguay a fin de prevenir actividades de contrabando y tráfico ilícito.",
-    fuente: "Fuentes Abiertas Regionales",
-    ubicacion: "Puerto Iguazú (Misiones)",
-    latitud: -25.5973,
-    longitud: -54.5781,
+    id: 302,
+    titulo: "SECUESTRAN CARGAMENTO DE COCAÍNA OCULTO EN TRANSPORTE DE CARGA SOBRE RUTA NACIONAL",
+    categoria: "Narcotráfico",
+    regionRIP: "Región Noroeste",
+    jurisdiccion: "TUCUMÁN",
+    fecha: "2026-11-19",
+    descripcion:
+      "En el límite interprovincial, efectivos de control vial junto a unidades operativas detuvieron al conductor de un camión y a su acompañante, secuestrando paquetes de cocaína acondicionados en compartimentos ocultos del rodado.",
+    que: "Detención de dos ocupantes de un camión y secuestro de paquetes de cocaína.",
+    quien: "Conductor del camión, acompañante y efectivos de control vial.",
+    cuando: "19 de noviembre de 2026.",
+    como: "Ocultando la sustancia en compartimentos escondidos dentro del transporte de carga.",
+    donde: "Límite entre Tucumán y Santiago del Estero, sobre ruta nacional.",
+    fuente: "Monitor ENFOQUE 360",
+    url: "https://www.lanacion.com.ar/",
+    ubicacion: "Límite Tucumán / Santiago del Estero",
+    imagen: BANCO_IMAGENES[6],
+  },
+  {
+    id: 303,
+    titulo: "REFUERZAN CONTROLES Y COOPERACIÓN REGIONAL ANTE RIESGOS DE FINANCIAMIENTO Y TERRORISMO",
+    categoria: "Terrorismo",
+    regionRIP: "Ámbito Externo",
+    jurisdiccion: "FRONTERA REGIONAL",
+    fecha: "2026-11-19",
+    descripcion:
+      "Organismos de seguridad y unidades de investigación ampliaron el intercambio de información sobre redes transnacionales sospechadas de captación, movimientos financieros irregulares y vínculos con grupos extremistas en la región.",
+    que: "Ampliación de controles e intercambio de información sobre redes transnacionales y extremismo.",
+    quien: "Organismos de seguridad, equipos de investigación y redes transnacionales bajo seguimiento.",
+    cuando: "19 de noviembre de 2026.",
+    como: "Mediante coordinación regional, seguimiento de movimientos financieros y controles en pasos y zonas sensibles.",
+    donde: "Zona fronteriza regional y ámbito externo.",
+    fuente: "Fuentes Abiertas",
+    url: "https://www.lanacion.com.ar/el-mundo/",
+    ubicacion: "Zona Fronteriza Regional",
+    imagen: BANCO_IMAGENES[2],
+  },
+  {
+    id: 304,
+    titulo: "REACOMODAMIENTO GEOPOLÍTICO EN RUTAS MARÍTIMAS, ENERGÍA Y CADENAS DE SUMINISTRO",
+    categoria: "Geopolítica",
+    regionRIP: "Ámbito Externo",
+    jurisdiccion: "ESCENARIO INTERNACIONAL",
+    fecha: "2026-11-19",
+    descripcion:
+      "Distintos bloques y potencias aceleraron acuerdos comerciales, de defensa y de provisión energética ante tensiones regionales y cambios en el comercio global que impactan en los precios y la logística internacional.",
+    que: "Nuevos acuerdos comerciales, energéticos y de defensa frente a tensiones internacionales.",
+    quien: "Países, bloques regionales y actores del comercio y la energía global.",
+    cuando: "19 de noviembre de 2026.",
+    como: "A través de negociaciones diplomáticas, reordenamiento de rutas y cambios en la provisión de insumos y energía.",
+    donde: "Escenario internacional y corredores marítimos y energéticos.",
+    fuente: "Prensa Internacional",
+    url: "https://www.cronista.com/",
+    ubicacion: "Escenario Internacional",
+    imagen: BANCO_IMAGENES[5],
+  },
+  {
+    id: 305,
+    titulo: "DECOMISAN ENCOMIENDAS CON MERCADERÍA DE CONTRABANDO SOBRE RUTA NACIONAL 34",
+    categoria: "Narcotráfico",
+    regionRIP: "Región Centro",
+    jurisdiccion: "SANTA FE",
+    fecha: "2026-11-18",
+    descripcion:
+      "Personal de seguridad vial realizó el control y apertura de encomiendas transportadas en un vehículo de carga, hallando mercadería de origen extranjero sin aval aduanero, valuada en decenas de millones de pesos.",
+    que: "Decomiso de encomiendas con mercadería extranjera sin aval aduanero.",
+    quien: "Personal de seguridad vial y responsables del traslado de la carga.",
+    cuando: "18 de noviembre de 2026.",
+    como: "Durante un control vehicular y revisión de encomiendas transportadas en ruta.",
+    donde: "Rafaela, Santa Fe, sobre Ruta Nacional 34.",
+    fuente: "Portal Oficial",
+    url: "https://www.argentina.gob.ar/",
+    ubicacion: "Rafaela, Santa Fe",
     imagen: BANCO_IMAGENES[1],
-    alerta: "Moderado",
+  },
+  {
+    id: 306,
+    titulo: "MONITOREO DE CORTE PARCIAL EN ACCESO VIAL POR RECLAMO DE ORGANIZACIONES",
+    categoria: "Alteración Orden Público / Protestas",
+    regionRIP: "CABA y Provincia de Buenos Aires",
+    jurisdiccion: "BUENOS AIRES",
+    fecha: "2026-11-18",
+    descripcion:
+      "Grupos de manifestantes realizaron una interrupción parcial del tránsito sobre un acceso principal con desvíos ordenados y despliegue preventivo para resguardar la circulación.",
+    que: "Interrupción parcial del tránsito y ordenamiento de desvíos viales.",
+    quien: "Grupos de manifestantes y personal de prevención y tránsito.",
+    cuando: "18 de noviembre de 2026.",
+    como: "Ocupando parcialmente calzada en un acceso vial mientras se habilitaban rutas alternativas.",
+    donde: "Provincia de Buenos Aires (acceso vial).",
+    fuente: "Monitoreo Urbano",
+    url: "https://www.argentina.gob.ar/seguridad",
+    ubicacion: "Provincia de Buenos Aires",
+    imagen: BANCO_IMAGENES[7],
   },
 ];
+
+function formatearFechaLargaES(fechaISO: string): string {
+  if (!fechaISO) return "";
+  const partes = fechaISO.split("-");
+  if (partes.length !== 3) return fechaISO;
+  const anio = parseInt(partes[0], 10);
+  const mesIdx = parseInt(partes[1], 10) - 1;
+  const dia = parseInt(partes[2], 10);
+  const meses = [
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+  ];
+  const fechaObj = new Date(anio, mesIdx, dia);
+  if (isNaN(fechaObj.getTime())) return fechaISO;
+  return `${dia} de ${meses[mesIdx]} de ${anio}`;
+}
+
+function completarInterrogantesPorDefecto(
+  reg: Partial<Registro> & { titulo: string; descripcion: string; fecha: string }
+): { que: string; quien: string; cuando: string; como: string; donde: string } {
+  const lugar = reg.ubicacion || reg.jurisdiccion || "Ámbito nacional";
+  const fechaTexto = formatearFechaLargaES(reg.fecha) || reg.fecha;
+  return {
+    que: reg.que?.trim() || reg.titulo,
+    quien: reg.quien?.trim() || "Actores y organismos mencionados en la noticia.",
+    cuando: reg.cuando?.trim() || fechaTexto,
+    como: reg.como?.trim() || reg.descripcion,
+    donde: reg.donde?.trim() || lugar,
+  };
+}
 
 export default function Home() {
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [montado, setMontado] = useState(false);
   const [reloj, setReloj] = useState<string>("");
 
+  const [solapaActiva, setSolapaActiva] = useState<"monitor" | "subir">("monitor");
+
   const [noticiaAmpliada, setNoticiaAmpliada] = useState<Registro | null>(null);
+  const [reportesParaRIP, setReportesParaRIP] = useState<Registro[] | null>(null);
+  const [fechaParteRIP, setFechaParteRIP] = useState<string>("");
 
   const [titulo, setTitulo] = useState("");
-  const [subtitulo, setSubtitulo] = useState("");
-  const [puntosClave, setPuntosClave] = useState("");
-  const [categoria, setCategoria] = useState("Inteligencia y seguridad");
+  const [categoria, setCategoria] = useState("Narcotráfico");
+  const [regionRIP, setRegionRIP] = useState("Región Noreste");
+  const [jurisdiccion, setJurisdiccion] = useState("MISIONES");
   const [fecha, setFecha] = useState("");
   const [descripcion, setDescripcion] = useState("");
+  const [que, setQue] = useState("");
+  const [quien, setQuien] = useState("");
+  const [cuando, setCuando] = useState("");
+  const [como, setComo] = useState("");
+  const [donde, setDonde] = useState("");
   const [fuente, setFuente] = useState("");
   const [url, setUrl] = useState("");
   const [ubicacion, setUbicacion] = useState("");
-  const [latitud, setLatitud] = useState<string>("");
-  const [longitud, setLongitud] = useState<string>("");
   const [imagen, setImagen] = useState("");
-  const [alerta, setAlerta] = useState<NivelAlerta>("Informativo");
+
+  const [dimensionCargaRapida, setDimensionCargaRapida] = useState("Narcotráfico");
+  const [regionCargaRapida, setRegionCargaRapida] = useState("Región Noreste");
+  const [jurisdiccionCargaRapida, setJurisdiccionCargaRapida] = useState("MISIONES");
+  const [ubicacionCargaRapida, setUbicacionCargaRapida] = useState("Ámbito Nacional");
+  const [urlCargaRapida, setUrlCargaRapida] = useState("");
+  const [textoPegadoRapido, setTextoPegadoRapido] = useState("");
 
   const [mensaje, setMensaje] = useState("");
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [modoEdicion, setModoEdicion] = useState(false);
 
   const [busqueda, setBusqueda] = useState("");
-  const [filtroCategoria, setFiltroCategoria] = useState("");
+  const [filtroDimension, setFiltroDimension] = useState("");
+  const [filtroRegion, setFiltroRegion] = useState("");
   const [filtroFecha, setFiltroFecha] = useState("");
-  const [filtroAlerta, setFiltroAlerta] = useState("");
-
-  const [palabraClaveOSINT, setPalabraClaveOSINT] = useState("Fronteras");
-  const [itemsRSS, setItemsRSS] = useState<ItemRSS[]>([]);
-  const [cargandoRSS, setCargandoRSS] = useState(false);
-  const [errorRSS, setErrorRSS] = useState("");
 
   useEffect(() => {
     const actualizarReloj = () => {
@@ -169,247 +284,205 @@ export default function Home() {
     setFecha(new Date().toISOString().slice(0, 10));
 
     try {
-      const guardados = localStorage.getItem("enfoque-360-registros-v1");
+      const guardados = localStorage.getItem("enfoque-360-rip-v4");
       if (guardados && JSON.parse(guardados).length > 0) {
         setRegistros(JSON.parse(guardados));
       } else {
         setRegistros(NOTICIAS_SEMILLA);
       }
-    } catch (e) {
+    } catch {
       setRegistros(NOTICIAS_SEMILLA);
     }
   }, []);
 
   useEffect(() => {
-    if (!montado) return;
-    const intervaloAutoSondeo = setInterval(() => {
-      consultarGoogleNoticiasArg("Seguridad Fronteriza");
-    }, 10 * 60 * 1000);
-
-    return () => clearInterval(intervaloAutoSondeo);
-  }, [montado]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    if (!document.getElementById("leaflet-css")) {
-      const link = document.createElement("link");
-      link.id = "leaflet-css";
-      link.rel = "stylesheet";
-      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-      document.head.appendChild(link);
-    }
-
-    if (!document.getElementById("leaflet-js")) {
-      const script = document.createElement("script");
-      script.id = "leaflet-js";
-      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      script.onload = () => inicializarMapa();
-      document.head.appendChild(script);
-    } else {
-      inicializarMapa();
-    }
-  }, [registros, montado]);
-
-  useEffect(() => {
     if (montado) {
-      localStorage.setItem("enfoque-360-registros-v1", JSON.stringify(registros));
+      localStorage.setItem("enfoque-360-rip-v4", JSON.stringify(registros));
     }
   }, [registros, montado]);
-
-  function inicializarMapa() {
-    if (typeof window === "undefined" || !(window as any).L) return;
-    const L = (window as any).L;
-    const container = document.getElementById("mapa-osint");
-    if (!container) return;
-
-    if ((container as any)._leaflet_id) {
-      (container as any)._leaflet_id = null;
-      container.innerHTML = "";
-    }
-
-    const map = L.map("mapa-osint").setView([-38.4161, -63.6167], 4);
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 18,
-      attribution: '© OpenStreetMap | <strong>ENFOQUE 360 Operativo - Autor: A.S.C. 187</strong>',
-    }).addTo(map);
-
-    const obtenerColor = (a?: NivelAlerta) => {
-      switch (a) {
-        case "Crítico": return "#dc2626";
-        case "Alto": return "#ea580c";
-        case "Moderado": return "#ca8a04";
-        default: return "#16a34a";
-      }
-    };
-
-    registros.forEach((reg) => {
-      if (reg.latitud && reg.longitud) {
-        const color = obtenerColor(reg.alerta);
-        const customIcon = L.divIcon({
-          className: "custom-pin",
-          html: `<div style="background-color:${color}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>`,
-          iconSize: [14, 14],
-          iconAnchor: [7, 7],
-        });
-
-        const popupContent = `
-          <div style="font-family: Arial, sans-serif; font-size: 12px; width: 210px;">
-            ${reg.imagen ? `<img src="${reg.imagen}" style="width:100%; height:90px; object-fit:cover; border-radius:4px; margin-bottom:6px;"/>` : ""}
-            <strong style="color:#0f172a; font-size:13px;">${reg.titulo}</strong>
-            <p style="margin:4px 0; color:#475569;">${reg.descripcion.slice(0, 80)}...</p>
-            <div style="margin-top:6px; font-size:11px; color:#64748b;">
-              📍 ${reg.ubicacion || "Ubicación Geográfica"}<br/>
-              🚨 Alerta: <strong>${reg.alerta || "Informativo"}</strong>
-            </div>
-            ${reg.url ? `<a href="${reg.url}" target="_blank" style="display:inline-block; margin-top:6px; color:#0284c7; font-weight:bold;">Fuente 🔗</a>` : ""}
-          </div>
-        `;
-
-        L.marker([reg.latitud, reg.longitud], { icon: customIcon })
-          .addTo(map)
-          .bindPopup(popupContent);
-      }
-    });
-  }
-
-  async function consultarGoogleNoticiasArg(palabraOverride?: string) {
-    const termino = palabraOverride !== undefined ? palabraOverride : palabraClaveOSINT;
-    setCargandoRSS(true);
-    setErrorRSS("");
-    setItemsRSS([]);
-
-    const googleRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(termino)}&hl=es-419&gl=AR&ceid=AR:es-419`;
-
-    try {
-      const apiEndpoint = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(googleRssUrl)}`;
-      const res = await fetch(apiEndpoint);
-      const data = await res.json();
-
-      if (data.status === "ok" && data.items && data.items.length > 0) {
-        const mapeados = data.items.map((it: any) => ({
-          title: it.title,
-          pubDate: it.pubDate,
-          link: it.link,
-          description: it.description,
-          author: it.author || "Google Noticias Arg",
-          fuenteNombre: "Google Noticias Arg",
-          thumbnail: it.thumbnail || "",
-        }));
-        setItemsRSS(mapeados);
-      } else {
-        setErrorRSS(`No se encontraron registros para "${termino}".`);
-      }
-    } catch {
-      setErrorRSS("Error al consultar fuentes externas.");
-    } finally {
-      setCargandoRSS(false);
-    }
-  }
 
   function obtenerImagenUnica(id: number, texto: string): string {
     const t = texto.toLowerCase();
     if (t.includes("dron")) return BANCO_IMAGENES[0];
-    if (t.includes("triple") || t.includes("iguazú") || t.includes("rio") || t.includes("frontera")) return BANCO_IMAGENES[1];
-    if (t.includes("ciber") || t.includes("hack") || t.includes("inteligencia")) return BANCO_IMAGENES[2];
-    if (t.includes("petroleo") || t.includes("vaca muerta") || t.includes("combustible")) return BANCO_IMAGENES[3];
-    if (t.includes("policia") || t.includes("gendarmeria") || t.includes("control") || t.includes("operativo")) return BANCO_IMAGENES[4];
+    if (t.includes("triple") || t.includes("iguazú") || t.includes("rio") || t.includes("frontera")) {
+      return BANCO_IMAGENES[1];
+    }
+    if (t.includes("terror") || t.includes("hezbollah") || t.includes("ciber")) {
+      return BANCO_IMAGENES[2];
+    }
+    if (t.includes("geopol") || t.includes("internacional") || t.includes("energ")) {
+      return BANCO_IMAGENES[5];
+    }
+    if (t.includes("droga") || t.includes("narco") || t.includes("cocaina") || t.includes("marihuana")) {
+      return BANCO_IMAGENES[4];
+    }
 
     const indice = Math.abs(id) % BANCO_IMAGENES.length;
     return BANCO_IMAGENES[indice];
   }
 
-  function determinarNivelAlerta(texto: string): NivelAlerta {
-    const t = texto.toLowerCase();
-    if (t.includes("ataque") || t.includes("atentado") || t.includes("urgente")) return "Crítico";
-    if (t.includes("dron") || t.includes("hezbollah") || t.includes("incautacion")) return "Alto";
-    if (t.includes("alerta") || t.includes("control") || t.includes("operativo")) return "Moderado";
-    return "Informativo";
+  function manejarSubidaArchivoSimple(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    const nombreLimpio = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+    const idNuevo = Date.now();
+    const fechaHoy = new Date().toISOString().slice(0, 10);
+
+    reader.onload = (event) => {
+      try {
+        const contenido = event.target?.result as string;
+        if (file.name.toLowerCase().endsWith(".json")) {
+          const parsed = JSON.parse(contenido);
+          if (Array.isArray(parsed)) {
+            const normalizados = parsed.map((item: Registro, idx: number) => {
+              const base: Registro = {
+                id: item.id || idNuevo + idx,
+                titulo: (item.titulo || "NOVEDAD IMPORTADA").toUpperCase(),
+                categoria: item.categoria || dimensionCargaRapida,
+                regionRIP: item.regionRIP || regionCargaRapida,
+                jurisdiccion: (
+                  item.jurisdiccion ||
+                  jurisdiccionCargaRapida ||
+                  "JURISDICCIÓN"
+                ).toUpperCase(),
+                fecha: item.fecha || fechaHoy,
+                descripcion: item.descripcion || "",
+                fuente: item.fuente || file.name,
+                url: item.url || urlCargaRapida.trim() || "",
+                ubicacion: item.ubicacion || ubicacionCargaRapida,
+                imagen: item.imagen || obtenerImagenUnica(idNuevo + idx, item.titulo || ""),
+              };
+              const interp = completarInterrogantesPorDefecto({ ...base, ...item });
+              return { ...base, ...interp };
+            });
+            setRegistros((prev) => [...normalizados, ...prev]);
+            setMensaje(`Se importaron ${normalizados.length} registros al RIP desde JSON.`);
+            setSolapaActiva("monitor");
+          }
+        } else {
+          const lineas = contenido
+            .split("\n")
+            .map((l) => l.trim())
+            .filter(Boolean);
+          const tituloDetectado = (
+            lineas[0] && lineas[0].length < 140 ? lineas[0] : nombreLimpio
+          ).toUpperCase();
+          const cuerpoDetectado =
+            lineas.length > 1 ? lineas.slice(1).join("\n") : contenido || "Contenido adjunto.";
+
+          const interp = completarInterrogantesPorDefecto({
+            titulo: tituloDetectado,
+            descripcion: cuerpoDetectado,
+            fecha: fechaHoy,
+            ubicacion: ubicacionCargaRapida,
+            jurisdiccion: jurisdiccionCargaRapida,
+          });
+
+          const nuevo: Registro = {
+            id: idNuevo,
+            titulo: tituloDetectado,
+            descripcion: cuerpoDetectado,
+            ...interp,
+            categoria: dimensionCargaRapida,
+            regionRIP: regionCargaRapida,
+            jurisdiccion: (jurisdiccionCargaRapida || "JURISDICCIÓN").toUpperCase(),
+            fecha: fechaHoy,
+            fuente: `Documento (${file.name})`,
+            url: urlCargaRapida.trim() || "",
+            ubicacion: ubicacionCargaRapida,
+            imagen: obtenerImagenUnica(idNuevo, tituloDetectado),
+          };
+
+          setRegistros((prev) => [nuevo, ...prev]);
+          setMensaje(`Archivo "${file.name}" cargado en el RIP.`);
+          setSolapaActiva("monitor");
+        }
+      } catch {
+        alert("Error al procesar el archivo.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
   }
 
-  function extraerResumenReal(description: string, title: string): string {
-    if (!description) return title;
-    
-    const textoLimpio = description
-      .replace(/<[^>]*>?/gm, "")
-      .replace(/&nbsp;/g, " ")
-      .replace(/&quot;/g, '"')
-      .trim();
-
-    if (textoLimpio.length > 30) {
-      return textoLimpio.length > 220 ? textoLimpio.slice(0, 220) + "..." : textoLimpio;
-    }
-    
-    return title;
-  }
-
-  function publicarDirectoDesdeRSS(item: ItemRSS) {
-    const idUnico = Date.now() + Math.floor(Math.random() * 10000);
-    const resumenReal = extraerResumenReal(item.description, item.title);
-    const imgUrl = item.thumbnail && item.thumbnail.startsWith("http") 
-      ? item.thumbnail 
-      : obtenerImagenUnica(idUnico, item.title + " " + item.description);
-    
-    const nivelAlertaCalculado = determinarNivelAlerta(item.title + " " + item.description);
-
-    let catAsignada = "Inteligencia y seguridad";
-    const t = (item.title + " " + item.description).toLowerCase();
-    if (t.includes("dron") || t.includes("inteligencia artificial") || t.includes("ciber")) {
-      catAsignada = "Inteligencia y seguridad";
-    } else if (t.includes("mapuche") || t.includes("ram") || t.includes("antifa")) {
-      catAsignada = "Gobierno y política";
-    } else if (t.includes("hezbollah") || t.includes("frontera") || t.includes("paraguay") || t.includes("triple")) {
-      catAsignada = "Delitos transnacionales";
+  function publicarTextoPegado(e: React.FormEvent) {
+    e.preventDefault();
+    if (!textoPegadoRapido.trim()) {
+      setMensaje("Por favor ingresá texto para publicar.");
+      return;
     }
 
-    let lat: number | undefined = undefined;
-    let lng: number | undefined = undefined;
-    let ub = "Zona de Cobertura Nacional";
+    const idNuevo = Date.now();
+    const fechaHoy = new Date().toISOString().slice(0, 10);
+    const lineas = textoPegadoRapido
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const tituloDef = (
+      lineas[0] && lineas[0].length < 140 ? lineas[0] : "NOVEDAD INGRESADA"
+    ).toUpperCase();
+    const descDef = lineas.length > 1 ? lineas.slice(1).join("\n") : textoPegadoRapido;
 
-    if (t.includes("triple") || t.includes("iguazú")) {
-      ub = "Puerto Iguazú (Misiones)";
-      lat = -25.5973;
-      lng = -54.5781;
-    } else if (t.includes("quiaca") || t.includes("jujuy")) {
-      ub = "La Quiaca, Jujuy";
-      lat = -22.1023;
-      lng = -65.5982;
-    }
+    const interp = completarInterrogantesPorDefecto({
+      titulo: tituloDef,
+      descripcion: descDef,
+      fecha: fechaHoy,
+      ubicacion: ubicacionCargaRapida,
+      jurisdiccion: jurisdiccionCargaRapida,
+    });
 
-    const nuevaNoticia: Registro = {
-      id: idUnico,
-      titulo: item.title || "Reporte sin título",
-      subtitulo: "",
-      puntosClave: "",
-      categoria: catAsignada,
-      fecha: item.pubDate ? new Date(item.pubDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
-      descripcion: resumenReal,
-      fuente: item.fuenteNombre || "Google Noticias Arg",
-      url: item.link || "",
-      ubicacion: ub,
-      latitud: lat,
-      longitud: lng,
-      imagen: imgUrl,
-      alerta: nivelAlertaCalculado,
+    const nuevo: Registro = {
+      id: idNuevo,
+      titulo: tituloDef,
+      descripcion: descDef,
+      ...interp,
+      categoria: dimensionCargaRapida,
+      regionRIP: regionCargaRapida,
+      jurisdiccion: (jurisdiccionCargaRapida || "JURISDICCIÓN").toUpperCase(),
+      fecha: fechaHoy,
+      fuente: "Ingreso Directo de Texto",
+      url: urlCargaRapida.trim() || "",
+      ubicacion: ubicacionCargaRapida,
+      imagen: obtenerImagenUnica(idNuevo, tituloDef),
     };
 
-    setRegistros((actuales) => [nuevaNoticia, ...actuales]);
-    setMensaje(`Reporte integrado exitosamente al sistema.`);
+    setRegistros((prev) => [nuevo, ...prev]);
+    setTextoPegadoRapido("");
+    setUrlCargaRapida("");
+    setMensaje("Novedad publicada en el RIP.");
+    setSolapaActiva("monitor");
   }
 
   function registrar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     if (!titulo.trim() || !descripcion.trim()) {
-      setMensaje("Completá el título y la descripción del reporte.");
+      setMensaje("Completá el título y el desarrollo de la noticia.");
       return;
     }
 
     const idNuevo = Date.now();
-    const lat = latitud ? parseFloat(latitud) : undefined;
-    const lng = longitud ? parseFloat(longitud) : undefined;
-    const imgFinal = imagen.trim() ? imagen.trim() : obtenerImagenUnica(editandoId || idNuevo, titulo + " " + descripcion);
+    const imgFinal = imagen.trim()
+      ? imagen.trim()
+      : obtenerImagenUnica(editandoId || idNuevo, titulo + " " + descripcion);
+    const jurFinal = (jurisdiccion.trim() || ubicacion.trim() || "JURISDICCIÓN").toUpperCase();
+    const tituloMayus = titulo.trim().toUpperCase();
+    const descLimpia = descripcion.trim();
+
+    const interp = completarInterrogantesPorDefecto({
+      titulo: tituloMayus,
+      descripcion: descLimpia,
+      fecha,
+      ubicacion: ubicacion.trim(),
+      jurisdiccion: jurFinal,
+      que,
+      quien,
+      cuando,
+      como,
+      donde,
+    });
 
     if (modoEdicion && editandoId !== null) {
       setRegistros((actuales) =>
@@ -417,126 +490,215 @@ export default function Home() {
           reg.id === editandoId
             ? {
                 ...reg,
-                titulo: titulo.trim(),
-                subtitulo: subtitulo.trim(),
-                puntosClave: puntosClave.trim(),
+                titulo: tituloMayus,
                 categoria,
+                regionRIP,
+                jurisdiccion: jurFinal,
                 fecha,
-                descripcion: descripcion.trim(),
+                descripcion: descLimpia,
+                ...interp,
                 fuente: fuente.trim(),
                 url: url.trim(),
                 ubicacion: ubicacion.trim(),
-                latitud: lat,
-                longitud: lng,
                 imagen: imgFinal,
-                alerta,
               }
             : reg
         )
       );
-      setMensaje("Reporte actualizado correctamente.");
+      setMensaje("Registro RIP actualizado.");
     } else {
       const nuevo: Registro = {
         id: idNuevo,
-        titulo: titulo.trim(),
-        subtitulo: subtitulo.trim(),
-        puntosClave: puntosClave.trim(),
+        titulo: tituloMayus,
         categoria,
+        regionRIP,
+        jurisdiccion: jurFinal,
         fecha,
-        descripcion: descripcion.trim(),
+        descripcion: descLimpia,
+        ...interp,
         fuente: fuente.trim(),
         url: url.trim(),
         ubicacion: ubicacion.trim(),
-        latitud: lat,
-        longitud: lng,
         imagen: imgFinal,
-        alerta,
       };
       setRegistros((actuales) => [nuevo, ...actuales]);
-      setMensaje("Reporte registrado en la plataforma.");
+      setMensaje("Registro agregado al RIP.");
     }
 
     limpiarFormulario();
+    setSolapaActiva("monitor");
   }
 
   function limpiarFormulario() {
     setTitulo("");
-    setSubtitulo("");
-    setPuntosClave("");
-    setCategoria("Inteligencia y seguridad");
+    setCategoria("Narcotráfico");
+    setRegionRIP("Región Noreste");
+    setJurisdiccion("MISIONES");
     setFecha(new Date().toISOString().slice(0, 10));
     setDescripcion("");
+    setQue("");
+    setQuien("");
+    setCuando("");
+    setComo("");
+    setDonde("");
     setFuente("");
     setUrl("");
     setUbicacion("");
-    setLatitud("");
-    setLongitud("");
     setImagen("");
-    setAlerta("Informativo");
     setEditandoId(null);
     setModoEdicion(false);
   }
 
-  function seleccionarReferencia(ref: { nombre: string; lat: number; lng: number }) {
+  function seleccionarReferencia(ref: { nombre: string; region: string; jur: string }) {
     setUbicacion(ref.nombre);
-    setLatitud(ref.lat.toString());
-    setLongitud(ref.lng.toString());
+    setRegionRIP(ref.region);
+    setJurisdiccion(ref.jur);
+    if (!donde.trim()) {
+      setDonde(ref.nombre);
+    }
   }
 
   function iniciarEdicion(reg: Registro) {
     setEditandoId(reg.id);
     setModoEdicion(true);
     setTitulo(reg.titulo);
-    setSubtitulo(reg.subtitulo || "");
-    setPuntosClave(reg.puntosClave || "");
     setCategoria(reg.categoria);
+    setRegionRIP(reg.regionRIP || "Ámbito Nacional");
+    setJurisdiccion(reg.jurisdiccion || "JURISDICCIÓN");
     setFecha(reg.fecha);
     setDescripcion(reg.descripcion);
+    const interp = completarInterrogantesPorDefecto(reg);
+    setQue(interp.que);
+    setQuien(interp.quien);
+    setCuando(interp.cuando);
+    setComo(interp.como);
+    setDonde(interp.donde);
     setFuente(reg.fuente || "");
     setUrl(reg.url || "");
     setUbicacion(reg.ubicacion || "");
-    setLatitud(reg.latitud ? reg.latitud.toString() : "");
-    setLongitud(reg.longitud ? reg.longitud.toString() : "");
     setImagen(reg.imagen || "");
-    setAlerta(reg.alerta || "Informativo");
+    setSolapaActiva("subir");
   }
 
   function cancelarEdicion() {
     limpiarFormulario();
+    setSolapaActiva("monitor");
   }
 
   function eliminar(id: number) {
-    if (window.confirm("¿Confirma la eliminación de este registro operativo?")) {
+    if (window.confirm("¿Confirma la eliminación de este registro del RIP?")) {
       setRegistros((actuales) => actuales.filter((reg) => reg.id !== id));
       if (editandoId === id) limpiarFormulario();
     }
   }
 
+  function restaurarNoticiasNuevas() {
+    setRegistros(NOTICIAS_SEMILLA);
+    localStorage.setItem("enfoque-360-rip-v4", JSON.stringify(NOTICIAS_SEMILLA));
+    setMensaje("Base actualizada con las novedades del RIP.");
+  }
+
+  function abrirVistaRIPIndividual(reg: Registro) {
+    setFechaParteRIP(reg.fecha);
+    setReportesParaRIP([reg]);
+  }
+
+  function abrirVistaRIPDiaCompleto() {
+    const fechaObjetivo =
+      filtroFecha ||
+      (resultados.length > 0 ? resultados[0].fecha : new Date().toISOString().slice(0, 10));
+
+    const delDia = registros.filter((r) => r.fecha === fechaObjetivo);
+    const listaParaMostrar =
+      delDia.length > 0 ? delDia : resultados.length > 0 ? resultados : registros;
+
+    if (listaParaMostrar.length === 0) {
+      alert("No hay novedades disponibles para generar el RIP.");
+      return;
+    }
+
+    setFechaParteRIP(delDia.length > 0 ? fechaObjetivo : listaParaMostrar[0].fecha);
+    setReportesParaRIP(listaParaMostrar);
+  }
+
+  function ejecutarImpresionRIP() {
+    window.print();
+  }
+
   const resultados = registros.filter((reg) => {
+    const interp = completarInterrogantesPorDefecto(reg);
     const texto = (
-      reg.titulo + " " + (reg.subtitulo || "") + " " + (reg.puntosClave || "") + " " + reg.categoria + " " + reg.descripcion + " " + (reg.fuente || "") + " " + (reg.ubicacion || "")
+      reg.titulo +
+      " " +
+      reg.categoria +
+      " " +
+      (reg.regionRIP || "") +
+      " " +
+      (reg.jurisdiccion || "") +
+      " " +
+      reg.descripcion +
+      " " +
+      interp.que +
+      " " +
+      interp.quien +
+      " " +
+      interp.cuando +
+      " " +
+      interp.como +
+      " " +
+      interp.donde +
+      " " +
+      (reg.fuente || "") +
+      " " +
+      (reg.ubicacion || "")
     ).toLowerCase();
+
+    const coincideDimension =
+      filtroDimension && filtroDimension !== "Todas las Dimensiones"
+        ? reg.categoria === filtroDimension
+        : true;
+
+    const coincideRegion =
+      filtroRegion && filtroRegion !== "Todas las Regiones"
+        ? (reg.regionRIP || "").toLowerCase() === filtroRegion.toLowerCase() ||
+          (reg.ubicacion || "")
+            .toLowerCase()
+            .includes(filtroRegion.replace("Región ", "").toLowerCase())
+        : true;
 
     return (
       texto.includes(busqueda.toLowerCase()) &&
-      (filtroCategoria ? reg.categoria === filtroCategoria : true) &&
-      (filtroFecha ? reg.fecha === filtroFecha : true) &&
-      (filtroAlerta ? (reg.alerta || "Informativo") === filtroAlerta : true)
+      coincideDimension &&
+      coincideRegion &&
+      (filtroFecha ? reg.fecha === filtroFecha : true)
     );
   });
 
-  function obtenerBadgeAlerta(nivel: NivelAlerta = "Informativo") {
-    switch (nivel) {
-      case "Crítico": return { bg: "#fef2f2", color: "#991b1b", border: "#fecaca" };
-      case "Alto": return { bg: "#fff7ed", color: "#c2410c", border: "#ffedd5" };
-      case "Moderado": return { bg: "#fefce8", color: "#854d0e", border: "#fef08a" };
-      default: return { bg: "#f0fdf4", color: "#166534", border: "#bbf7d0" };
-    }
-  }
+  const ordenSeccionesRIP = [
+    "Región Noreste",
+    "Región Noroeste",
+    "Región Centro",
+    "Región Cuyo",
+    "Región Patagónica",
+    "CABA y Provincia de Buenos Aires",
+    "Ámbito Nacional",
+    "Ámbito Externo",
+  ];
 
-  const campoEstilo = {
+  const seccionesAgrupadasRIP = reportesParaRIP
+    ? ordenSeccionesRIP
+        .map((sec) => ({
+          nombre: sec.toUpperCase(),
+          items: reportesParaRIP.filter(
+            (r) => (r.regionRIP || "Ámbito Nacional").toLowerCase() === sec.toLowerCase()
+          ),
+        }))
+        .filter((g) => g.items.length > 0)
+    : [];
+
+  const campoEstilo: React.CSSProperties = {
     width: "100%",
-    boxSizing: "border-box" as const,
+    boxSizing: "border-box",
     padding: "9px 12px",
     border: "1px solid #cbd5e1",
     borderRadius: "4px",
@@ -546,475 +708,972 @@ export default function Home() {
     color: "#0f172a",
   };
 
-  const botonInstitucional = {
+  const botonInstitucional: React.CSSProperties = {
     padding: "9px 14px",
     border: "none",
     borderRadius: "4px",
     background: "#14362b",
     color: "#ffffff",
-    fontWeight: "bold" as const,
+    fontWeight: "bold",
     cursor: "pointer",
     fontSize: "13px",
   };
 
-  const botonGris = {
+  const botonGris: React.CSSProperties = {
     padding: "9px 14px",
     border: "1px solid #cbd5e1",
     borderRadius: "4px",
     background: "#f1f5f9",
     color: "#334155",
-    fontWeight: "bold" as const,
+    fontWeight: "bold",
     cursor: "pointer",
     fontSize: "13px",
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f4f6f8", fontFamily: "Segoe UI, Tahoma, Geneva, Verdana, sans-serif", color: "#1e293b" }}>
-      
-      {/* ENCABEZADO INSTITUCIONAL */}
-      <header style={{ background: "#0c231d", color: "#ffffff", borderBottom: "3px solid #14362b", boxShadow: "0 2px 4px rgba(0,0,0,0.15)" }}>
-        <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <span style={{ background: "#14362b", color: "#4ade80", padding: "4px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "bold", border: "1px solid #1e5643" }}>
-                SISTEMA OSINT
-              </span>
-              <h1 translate="no" style={{ margin: 0, fontSize: "22px", fontWeight: "700", letterSpacing: "0.5px", color: "#ffffff" }}>
-                ENFOQUE 360
-              </h1>
-            </div>
-            <p style={{ margin: "4px 0 0", fontSize: "12px", color: "#94a3b8" }}>
-              Agregador de Noticias en Tiempo Real para la Seguridad Nacional y el Orden Público
-            </p>
-          </div>
-          
-          <div style={{ textAlign: "right" }}>
-            <span style={{ fontSize: "12px", color: "#fef08a", fontWeight: "600", background: "#081914", padding: "5px 12px", borderRadius: "4px", border: "1px solid #14362b", display: "inline-block", marginBottom: "4px" }}>
-              🕒 {reloj || "Sincronizando reloj..."}
+    <div className="min-h-screen bg-gray-100 text-gray-900 font-sans flex flex-col">
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #documento-rip-imprimible, #documento-rip-imprimible * {
+            visibility: visible;
+          }
+          #documento-rip-imprimible {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100%;
+            background: #ffffff !important;
+            padding: 16px 24px !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
+
+      {/* ENCABEZADO CON SOLAPAS */}
+      <header className="no-print bg-[#0c231d] text-white border-b-4 border-[#14362b] shadow-md">
+        <div className="max-w-7xl mx-auto px-4 pt-3 sm:px-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="flex items-center gap-3">
+            <span className="bg-[#14362b] text-emerald-400 px-2.5 py-1 rounded text-xs font-bold border border-emerald-800">
+              RIP • RESUMEN DE INFORMACIÓN DE PRENSA
             </span>
-            <div style={{ fontSize: "11px", color: "#4ade80" }}>
-              ● Módulo Operativo Activo (Autor: A.S.C. 187)
-            </div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+              ENFOQUE 360
+            </h1>
           </div>
+
+          <div className="text-left sm:text-right">
+            <span className="text-xs text-amber-200 font-semibold bg-[#081914] px-3 py-1.5 rounded border border-[#14362b] inline-block">
+              {reloj || "Sincronizando..."}
+            </span>
+          </div>
+        </div>
+
+        {/* BARRA DE SOLAPAS */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-3 flex gap-2">
+          <button
+            type="button"
+            onClick={() => setSolapaActiva("monitor")}
+            className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-t-md transition-colors cursor-pointer ${
+              solapaActiva === "monitor"
+                ? "bg-gray-100 text-[#0c231d] border-t-2 border-emerald-500"
+                : "bg-[#14362b] text-slate-300 hover:bg-[#1a4738]"
+            }`}
+          >
+            Panel RIP y Novedades
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (!modoEdicion) limpiarFormulario();
+              setSolapaActiva("subir");
+            }}
+            className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-t-md transition-colors cursor-pointer ${
+              solapaActiva === "subir"
+                ? "bg-gray-100 text-[#0c231d] border-t-2 border-emerald-500"
+                : "bg-[#14362b] text-slate-300 hover:bg-[#1a4738]"
+            }`}
+          >
+            {modoEdicion ? "Editando Registro RIP" : "Cargar Novedades RIP"}
+          </button>
         </div>
       </header>
 
-      {/* CONTENEDOR PRINCIPAL */}
-      <div style={{ maxWidth: "1280px", width: "100%", margin: "0 auto", display: "flex", flex: 1, padding: "20px", gap: "24px" }}>
-        
-        {/* PANEL LATERAL */}
-        <aside style={{ width: "240px", flexShrink: 0 }}>
-          <div style={{ background: "#ffffff", padding: "16px", borderRadius: "6px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", position: "sticky", top: "20px" }}>
-            <h3 style={{ margin: "0 0 10px", fontSize: "12px", textTransform: "uppercase", color: "#64748b", letterSpacing: "0.5px", fontWeight: "700" }}>Módulos del Sistema</h3>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-              <li style={{ marginBottom: "6px" }}>
-                <a href="#feed-registros" style={{ display: "block", padding: "8px 10px", background: "#f0fdf4", color: "#166534", textDecoration: "none", borderRadius: "4px", fontWeight: "600", fontSize: "13px", borderLeft: "3px solid #16a34a" }}>
-                  📋 Panel de Reportes
-                </a>
-              </li>
-              <li style={{ marginBottom: "6px" }}>
-                <a href="#mapa-seccion" style={{ display: "block", padding: "8px 10px", background: "#f8fafc", color: "#334155", textDecoration: "none", borderRadius: "4px", fontSize: "13px" }}>
-                  🗺️ Mapa Táctico
-                </a>
-              </li>
-              <li style={{ marginBottom: "6px" }}>
-                <a href="#modulo-ingesta" style={{ display: "block", padding: "8px 10px", background: "#f8fafc", color: "#334155", textDecoration: "none", borderRadius: "4px", fontSize: "13px" }}>
-                  🌐 Ingesta Externa RSS
-                </a>
-              </li>
-              <li style={{ marginBottom: "6px" }}>
-                <a href="#modulo-investigacion" style={{ display: "block", padding: "8px 10px", background: "#f8fafc", color: "#334155", textDecoration: "none", borderRadius: "4px", fontSize: "13px" }}>
-                  ✍️ Registro Manual
-                </a>
-              </li>
-            </ul>
-          </div>
-        </aside>
-
-        {/* CONTENIDO PRINCIPAL */}
-        <main style={{ flex: 1, minWidth: 0 }}>
-
-          {/* SECCIÓN DE REPORTES / NOTICIAS */}
-          <section id="feed-registros" style={{ background: "#ffffff", padding: "20px", borderRadius: "6px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", marginBottom: "20px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: "2px solid #f1f5f9", paddingBottom: "10px" }}>
-              <h2 style={{ margin: 0, fontSize: "16px", color: "#0f172a", textTransform: "uppercase", fontWeight: "700", letterSpacing: "0.5px" }}>
-                📊 Registro de Inteligencia y Monitoreo Abierto
-              </h2>
-              <span style={{ fontSize: "12px", color: "#64748b", background: "#f1f5f9", padding: "3px 8px", borderRadius: "4px" }}>
-                Total registros: <strong>{montado ? resultados.length : 0}</strong>
-              </span>
-            </div>
-
-            {/* FILTROS DE BÚSQUEDA */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "18px" }}>
-              <input
-                style={campoEstilo}
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="🔍 Filtrar por término clave, ubicación o contenido..."
-              />
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
-                <select style={campoEstilo} value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)}>
-                  <option value="">Todas las Categorías</option>
-                  {CATEGORIAS_OSINT.map((cat, idx) => (
-                    <option key={idx} value={cat}>{cat}</option>
-                  ))}
-                </select>
-
-                <select style={campoEstilo} value={filtroAlerta} onChange={(e) => setFiltroAlerta(e.target.value)}>
-                  <option value="">Todos los Niveles de Alerta</option>
-                  {NIVELES_ALERTA.map((al, idx) => (
-                    <option key={idx} value={al}>{al}</option>
-                  ))}
-                </select>
-
-                <input type="date" style={campoEstilo} value={filtroFecha} onChange={(e) => setFiltroFecha(e.target.value)} />
-              </div>
-            </div>
-
-            {/* LISTADO DE TARJETAS */}
-            {!montado ? (
-              <p style={{ color: "#64748b", fontSize: "13px" }}>Cargando base de datos...</p>
-            ) : resultados.length === 0 ? (
-              <p style={{ color: "#64748b", fontSize: "13px", fontStyle: "italic", textAlign: "center", margin: "30px 0" }}>
-                No se encontraron registros con los filtros actuales.
-              </p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                {resultados.map((reg) => {
-                  const badge = obtenerBadgeAlerta(reg.alerta);
-                  return (
-                    <article
-                      key={reg.id}
-                      style={{
-                        borderRadius: "6px",
-                        border: "1px solid #e2e8f0",
-                        background: "#ffffff",
-                        padding: "14px",
-                        display: "flex",
-                        gap: "16px",
-                        alignItems: "flex-start",
-                        boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
-                          <span style={{ fontSize: "10px", padding: "2px 6px", borderRadius: "3px", background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`, fontWeight: "700", textTransform: "uppercase" }}>
-                            Alerta: {reg.alerta || "Informativo"}
-                          </span>
-                          <span style={{ fontSize: "11px", color: "#64748b" }}>
-                            Fecha: {reg.fecha} {reg.fuente ? `• Fuente: ${reg.fuente}` : ""}
-                          </span>
-                        </div>
-
-                        <h3 style={{ margin: "0 0 6px", fontSize: "16px", color: "#0f172a", lineHeight: "1.3", fontWeight: "700" }}>
-                          {reg.titulo}
-                        </h3>
-
-                        <p style={{ fontSize: "13px", color: "#475569", margin: "0 0 10px", lineHeight: "1.4" }}>
-                          {reg.descripcion}
-                        </p>
-
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", borderTop: "1px solid #f1f5f9", paddingTop: "8px" }}>
-                          <span style={{ color: "#047857", fontWeight: "600" }}>
-                            📍 {reg.ubicacion || "Ámbito Nacional"}
-                          </span>
-
-                          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                            <button
-                              type="button"
-                              onClick={() => setNoticiaAmpliada(reg)}
-                              style={{ ...botonInstitucional, padding: "4px 8px", fontSize: "11px" }}
-                            >
-                              🔍 Ampliar Noticia
-                            </button>
-
-                            {reg.url && (
-                              <a href={reg.url} target="_blank" rel="noopener noreferrer" style={{ color: "#0284c7", fontWeight: "600", textDecoration: "none" }}>
-                                Fuente 🔗
-                              </a>
-                            )}
-                            
-                            <button type="button" onClick={() => iniciarEdicion(reg)} style={{ background: "none", border: "none", color: "#475569", cursor: "pointer", fontSize: "12px", fontWeight: "600" }}>
-                              Editar
-                            </button>
-                            <button type="button" onClick={() => eliminar(reg.id)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "12px", fontWeight: "600" }}>
-                              Eliminar
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={{ width: "180px", height: "115px", flexShrink: 0, borderRadius: "4px", overflow: "hidden", background: "#f1f5f9", border: "1px solid #cbd5e1" }}>
-                        <img
-                          src={reg.imagen || obtenerImagenUnica(reg.id, reg.titulo + " " + reg.descripcion)}
-                          alt={reg.titulo}
-                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        />
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
-          {/* MAPA TÁCTICO */}
-          <section id="mapa-seccion" style={{ background: "#ffffff", padding: "20px", borderRadius: "6px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", marginBottom: "20px" }}>
-            <h2 style={{ fontSize: "15px", margin: "0 0 10px", color: "#0f172a", textTransform: "uppercase", fontWeight: "700" }}>
-              🗺️ Mapa Táctico de Incidentes
-            </h2>
-            <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "12px" }}>
-              Visualización geoespacial de incidentes registrados y zonas de vigilancia prioritaria.
-            </div>
-            <div id="mapa-osint" style={{ width: "100%", height: "400px", borderRadius: "4px", border: "1px solid #cbd5e1" }}></div>
-          </section>
-
-          {/* INGESTA EXTERNA RSS */}
-          <section id="modulo-ingesta" style={{ background: "#ffffff", padding: "20px", borderRadius: "6px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", marginBottom: "20px" }}>
-            <h2 style={{ fontSize: "15px", margin: "0 0 10px", color: "#0f172a", textTransform: "uppercase", fontWeight: "700" }}>
-              🌐 Ingesta Externa Automática (Google Noticias Arg)
-            </h2>
-            <p style={{ fontSize: "13px", color: "#475569", margin: "0 0 14px" }}>
-              Seleccione un término estratégico o ingrese palabras clave para monitorear fuentes abiertas en tiempo real e integrarlas con un clic.
-            </p>
-
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "14px" }}>
-              {TEMAS_OSINT_SUGERIDOS.map((tema, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => {
-                    setPalabraClaveOSINT(tema);
-                    consultarGoogleNoticiasArg(tema);
-                  }}
-                  style={{
-                    background: palabraClaveOSINT === tema ? "#14362b" : "#f1f5f9",
-                    color: palabraClaveOSINT === tema ? "#ffffff" : "#334155",
-                    border: "1px solid #cbd5e1",
-                    padding: "5px 10px",
-                    borderRadius: "4px",
-                    fontSize: "12px",
-                    cursor: "pointer",
-                    fontWeight: "600",
-                  }}
-                >
-                  {tema}
-                </button>
-              ))}
-            </div>
-
-            <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-              <input
-                style={{ ...campoEstilo, margin: 0 }}
-                value={palabraClaveOSINT}
-                onChange={(e) => setPalabraClaveOSINT(e.target.value)}
-                placeholder="Término de sondeo externo..."
-              />
+      {/* SOLAPA 1: MONITOR PRINCIPAL */}
+      {solapaActiva === "monitor" && (
+        <main className="no-print max-w-7xl w-full mx-auto p-3 sm:p-6 flex flex-col md:flex-row gap-6 flex-1">
+          {/* PANEL LATERAL */}
+          <aside className="w-full md:w-72 flex-shrink-0 space-y-4">
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 space-y-2">
               <button
                 type="button"
-                onClick={() => consultarGoogleNoticiasArg()}
-                style={botonInstitucional}
+                onClick={() => {
+                  limpiarFormulario();
+                  setSolapaActiva("subir");
+                }}
+                className="w-full py-2.5 px-3 bg-emerald-700 text-white rounded-md text-xs font-bold hover:bg-emerald-800 transition-colors cursor-pointer"
               >
-                {cargandoRSS ? "Sondeando..." : "Consultar Fuentes"}
+                Cargar Novedad al RIP
+              </button>
+
+              <button
+                type="button"
+                onClick={restaurarNoticiasNuevas}
+                className="w-full py-2 px-3 bg-slate-900 text-white rounded-md text-xs font-semibold hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Cargar Novedades Recientes
               </button>
             </div>
 
-            {errorRSS && <p style={{ color: "#dc2626", fontSize: "13px" }}>{errorRSS}</p>}
-
-            {itemsRSS.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "350px", overflowY: "auto", border: "1px solid #e2e8f0", padding: "10px", borderRadius: "4px", background: "#f8fafc" }}>
-                {itemsRSS.map((item, idx) => (
-                  <div key={idx} style={{ background: "#ffffff", padding: "10px", borderRadius: "4px", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <strong style={{ fontSize: "13px", color: "#0f172a", display: "block", marginBottom: "3px" }}>{item.title}</strong>
-                      <span style={{ fontSize: "11px", color: "#64748b" }}>{item.pubDate} • {item.author}</span>
-                    </div>
+            {/* PANEL DE DIMENSIONES Y REGIONES */}
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 space-y-4">
+              <div>
+                <h4 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                  EJES Y DIMENSIONES
+                </h4>
+                <div className="space-y-1">
+                  {DIMENSIONES_INFORMATIVAS.map((dim, idx) => (
                     <button
+                      key={idx}
                       type="button"
-                      onClick={() => publicarDirectoDesdeRSS(item)}
-                      style={{ ...botonInstitucional, background: "#16a34a", whiteSpace: "nowrap", padding: "6px 10px", fontSize: "11px" }}
+                      onClick={() =>
+                        setFiltroDimension(dim === "Todas las Dimensiones" ? "" : dim)
+                      }
+                      className="w-full text-left px-2.5 py-1.5 rounded text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5"
+                      style={{
+                        background:
+                          filtroDimension === dim ||
+                          (!filtroDimension && dim === "Todas las Dimensiones")
+                            ? "#14362b"
+                            : "#f8fafc",
+                        color:
+                          filtroDimension === dim ||
+                          (!filtroDimension && dim === "Todas las Dimensiones")
+                            ? "#ffffff"
+                            : "#1e293b",
+                        border: "1px solid #e2e8f0",
+                      }}
                     >
-                      📥 Integrar al Feed
+                      <span className="truncate">{dim}</span>
                     </button>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            )}
-          </section>
 
-          {/* REGISTRO MANUAL */}
-          <section id="modulo-investigacion" style={{ background: "#ffffff", padding: "20px", borderRadius: "6px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-            <h2 style={{ fontSize: "15px", margin: "0 0 10px", color: "#0f172a", textTransform: "uppercase", fontWeight: "700" }}>
-              {modoEdicion ? "✏️ Editar Registro Operativo" : "✍️ Registro Manual de Inteligencia"}
-            </h2>
-            <p style={{ fontSize: "13px", color: "#475569", margin: "0 0 14px" }}>
-              Complete los campos requeridos para asentar un nuevo reporte o incidencia en la plataforma.
-            </p>
+              <div className="border-t border-gray-200 pt-3">
+                <h4 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                  ESTRUCTURA REGIONAL (RIP)
+                </h4>
+                <div className="space-y-1">
+                  {ESTRUCTURA_TERRITORIAL.map((reg, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setFiltroRegion(reg === "Todas las Regiones" ? "" : reg)}
+                      className="w-full text-left px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 hover:bg-slate-50"
+                      style={{
+                        color:
+                          filtroRegion === reg || (!filtroRegion && reg === "Todas las Regiones")
+                            ? "#047857"
+                            : "#334155",
+                        fontWeight:
+                          filtroRegion === reg || (!filtroRegion && reg === "Todas las Regiones")
+                            ? "bold"
+                            : "normal",
+                        background:
+                          filtroRegion === reg || (!filtroRegion && reg === "Todas las Regiones")
+                            ? "#f0fdf4"
+                            : "transparent",
+                      }}
+                    >
+                      <span className="truncate">{reg}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </aside>
 
+          {/* CONTENIDO CENTRAL */}
+          <div className="flex-1 min-w-0 space-y-6">
             {mensaje && (
-              <div style={{ padding: "10px", background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#166534", borderRadius: "4px", fontSize: "13px", marginBottom: "14px", fontWeight: "600" }}>
-                {mensaje}
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded text-xs font-semibold flex justify-between items-center">
+                <span>{mensaje}</span>
+                <button
+                  type="button"
+                  onClick={() => setMensaje("")}
+                  className="text-emerald-900 font-bold cursor-pointer"
+                >
+                  ✕
+                </button>
               </div>
             )}
 
-            <form onSubmit={registrar} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div>
-                  <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>Título del Reporte *</label>
-                  <input style={campoEstilo} value={titulo} onChange={(e) => setTitulo(e.target.value)} required placeholder="Ej: Operativo preventivo..." />
-                </div>
-                <div>
-                  <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>Subtítulo / Bajada</label>
-                  <input style={campoEstilo} value={subtitulo} onChange={(e) => setSubtitulo(e.target.value)} placeholder="Breve síntesis complementaria..." />
+            {/* SECCIÓN DE NOVEDADES RIP */}
+            <section
+              id="feed-registros"
+              className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200"
+            >
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-gray-100 pb-4 mb-4">
+                <h2 className="text-base sm:text-lg font-bold text-gray-800 uppercase tracking-wide">
+                  RESUMEN DE INFORMACIÓN DE PRENSA (RIP)
+                </h2>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={abrirVistaRIPDiaCompleto}
+                    style={{
+                      ...botonInstitucional,
+                      background: "#0c231d",
+                      padding: "6px 12px",
+                      fontSize: "12px",
+                    }}
+                  >
+                    Generar Documento RIP (PDF)
+                  </button>
+                  <span className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1.5 rounded">
+                    Total: <strong>{montado ? resultados.length : 0}</strong>
+                  </span>
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+              {/* FILTROS */}
+              <div className="flex flex-col gap-3 mb-5">
+                <input
+                  style={campoEstilo}
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  placeholder="Filtrar por narcotráfico, terrorismo, geopolítica, jurisdicción o contenido..."
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="date"
+                    style={campoEstilo}
+                    value={filtroFecha}
+                    onChange={(e) => setFiltroFecha(e.target.value)}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFiltroDimension("");
+                      setFiltroRegion("");
+                      setBusqueda("");
+                      setFiltroFecha("");
+                    }}
+                    style={botonGris}
+                  >
+                    Limpiar Filtros
+                  </button>
+                </div>
+              </div>
+
+              {/* LISTADO DE TARJETAS */}
+              {!montado ? (
+                <p className="text-gray-500 text-sm">Cargando base de datos...</p>
+              ) : resultados.length === 0 ? (
+                <p className="text-gray-500 text-sm italic text-center py-8">
+                  No se encontraron registros con los filtros actuales.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {resultados.map((reg) => {
+                    const interp = completarInterrogantesPorDefecto(reg);
+                    return (
+                      <article
+                        key={reg.id}
+                        className="border border-gray-200 rounded-lg bg-white p-4 flex flex-col sm:flex-row gap-4 items-start shadow-xs hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <span className="text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded font-bold">
+                              {reg.categoria}
+                            </span>
+                            <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-semibold">
+                              {reg.regionRIP || "Ámbito Nacional"}
+                            </span>
+                            <span className="text-xs text-gray-500">Fecha: {reg.fecha}</span>
+                          </div>
+
+                          <h3 className="text-base font-bold text-gray-900 mb-1 leading-snug uppercase">
+                            {reg.titulo}
+                          </h3>
+
+                          <p className="text-xs sm:text-sm text-gray-700 mb-2.5 leading-relaxed whitespace-pre-line">
+                            <strong className="text-gray-900">
+                              {reg.jurisdiccion || reg.ubicacion || "JURISDICCIÓN"}:
+                            </strong>{" "}
+                            {reg.descripcion}
+                          </p>
+
+                          {/* INTERROGANTES BÁSICOS FUNDAMENTALES */}
+                          <div className="bg-slate-50 border border-slate-200 rounded p-2.5 mb-3 text-xs text-slate-800 space-y-1">
+                            <div>
+                              <strong>Qué:</strong> {interp.que}
+                            </div>
+                            <div>
+                              <strong>Quién:</strong> {interp.quien}
+                            </div>
+                            <div>
+                              <strong>Cuándo:</strong> {interp.cuando}
+                            </div>
+                            <div>
+                              <strong>Cómo:</strong> {interp.como}
+                            </div>
+                            <div>
+                              <strong>Dónde:</strong> {interp.donde}
+                            </div>
+                          </div>
+
+                          {reg.url && (
+                            <div className="mb-2.5 text-xs">
+                              <a
+                                href={reg.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-700 font-bold underline break-all hover:text-blue-900"
+                              >
+                                Abrir noticia periodística: {reg.url}
+                              </a>
+                            </div>
+                          )}
+
+                          <div className="flex flex-wrap justify-between items-center text-xs border-t border-gray-100 pt-2.5 gap-2">
+                            <span className="text-emerald-700 font-semibold">
+                              {reg.ubicacion || reg.jurisdiccion || "Ámbito Nacional"}
+                            </span>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => abrirVistaRIPIndividual(reg)}
+                                style={{
+                                  ...botonInstitucional,
+                                  background: "#0c231d",
+                                  padding: "4px 10px",
+                                  fontSize: "11px",
+                                }}
+                              >
+                                Ver RIP / PDF
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setNoticiaAmpliada(reg)}
+                                style={{
+                                  ...botonInstitucional,
+                                  padding: "4px 8px",
+                                  fontSize: "11px",
+                                }}
+                              >
+                                Ampliar
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => iniciarEdicion(reg)}
+                                className="text-gray-600 font-semibold hover:text-gray-900"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => eliminar(reg.id)}
+                                className="text-red-600 font-semibold hover:text-red-800"
+                              >
+                                Eliminar
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="w-full sm:w-44 h-28 flex-shrink-0 rounded overflow-hidden bg-gray-100 border border-gray-200">
+                          <img
+                            src={
+                              reg.imagen ||
+                              obtenerImagenUnica(reg.id, reg.titulo + " " + reg.descripcion)
+                            }
+                            alt={reg.titulo}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </div>
+        </main>
+      )}
+
+      {/* SOLAPA 2: CARGAR NOVEDADES RIP */}
+      {solapaActiva === "subir" && (
+        <main className="no-print max-w-4xl w-full mx-auto p-3 sm:p-6 flex-1 space-y-6">
+          {!modoEdicion && (
+            <div className="space-y-6">
+              <section className="bg-white p-5 sm:p-6 rounded-lg shadow-sm border-2 border-emerald-700">
+                <div className="flex justify-between items-center mb-3">
+                  <h2 className="text-base font-bold text-[#0c231d] uppercase tracking-wide">
+                    Subir Archivo de Texto o JSON al RIP
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={cancelarEdicion}
+                    className="text-xs font-bold text-gray-500 hover:text-gray-800 cursor-pointer"
+                  >
+                    ← Volver al RIP
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-600">Sección / Región RIP</label>
+                    <select
+                      style={campoEstilo}
+                      value={regionCargaRapida}
+                      onChange={(e) => setRegionCargaRapida(e.target.value)}
+                    >
+                      {ESTRUCTURA_TERRITORIAL.filter((r) => r !== "Todas las Regiones").map(
+                        (reg, idx) => (
+                          <option key={idx} value={reg}>
+                            {reg}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-600">
+                      Jurisdicción / Provincia
+                    </label>
+                    <input
+                      style={campoEstilo}
+                      value={jurisdiccionCargaRapida}
+                      onChange={(e) => setJurisdiccionCargaRapida(e.target.value)}
+                      placeholder="Ej: MISIONES, JUJUY, CABA..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-600">Dimensión / Eje</label>
+                    <select
+                      style={campoEstilo}
+                      value={dimensionCargaRapida}
+                      onChange={(e) => setDimensionCargaRapida(e.target.value)}
+                    >
+                      {DIMENSIONES_INFORMATIVAS.filter(
+                        (d) => d !== "Todas las Dimensiones"
+                      ).map((dim, idx) => (
+                        <option key={idx} value={dim}>
+                          {dim}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-600">Localidad / Detalle</label>
+                    <input
+                      style={campoEstilo}
+                      value={ubicacionCargaRapida}
+                      onChange={(e) => setUbicacionCargaRapida(e.target.value)}
+                      placeholder="Ej: Posadas, Misiones..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-600">
+                      Enlace de la Noticia (URL)
+                    </label>
+                    <input
+                      type="url"
+                      style={campoEstilo}
+                      value={urlCargaRapida}
+                      onChange={(e) => setUrlCargaRapida(e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+                </div>
+
+                <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-emerald-600 rounded-lg cursor-pointer bg-emerald-50/60 hover:bg-emerald-100/70 transition-colors">
+                  <div className="text-center px-4">
+                    <p className="text-sm font-bold text-[#0c231d]">
+                      Seleccionar archivo (.txt, .csv, .json) para cargar al RIP
+                    </p>
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      La primera línea se toma como título y el resto como desarrollo
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    accept=".txt,.json,.csv"
+                    onChange={manejarSubidaArchivoSimple}
+                    className="hidden"
+                  />
+                </label>
+              </section>
+
+              <section className="bg-white p-5 sm:p-6 rounded-lg shadow-sm border border-gray-300">
+                <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide mb-2">
+                  Pegar Texto Directamente para el RIP
+                </h2>
+                <form onSubmit={publicarTextoPegado} className="space-y-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-600">
+                      Enlace de la Noticia (URL opcional)
+                    </label>
+                    <input
+                      type="url"
+                      style={campoEstilo}
+                      value={urlCargaRapida}
+                      onChange={(e) => setUrlCargaRapida(e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <textarea
+                    style={{ ...campoEstilo, height: "130px", resize: "vertical" }}
+                    value={textoPegadoRapido}
+                    onChange={(e) => setTextoPegadoRapido(e.target.value)}
+                    placeholder="Pegá aquí el título en la primera línea y debajo el desarrollo de la novedad..."
+                  />
+                  <button type="submit" style={botonInstitucional}>
+                    Publicar Novedad en el RIP
+                  </button>
+                </form>
+              </section>
+            </div>
+          )}
+
+          {/* FORMULARIO MANUAL DETALLADO */}
+          <section className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
+              <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">
+                {modoEdicion ? "Editar Registro RIP" : "Carga Manual Detallada RIP"}
+              </h2>
+              {modoEdicion && (
+                <button
+                  type="button"
+                  onClick={cancelarEdicion}
+                  className="text-xs font-bold text-gray-500 hover:text-gray-800 cursor-pointer"
+                >
+                  ← Cancelar
+                </button>
+              )}
+            </div>
+
+            <form onSubmit={registrar} className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>Categoría</label>
-                  <select style={campoEstilo} value={categoria} onChange={(e) => setCategoria(e.target.value)}>
-                    {CATEGORIAS_OSINT.map((cat, idx) => (
-                      <option key={idx} value={cat}>{cat}</option>
+                  <label className="text-xs font-semibold text-gray-700">Título de la Novedad *</label>
+                  <input
+                    style={campoEstilo}
+                    value={titulo}
+                    onChange={(e) => setTitulo(e.target.value)}
+                    required
+                    placeholder="Ej: OPERATIVO CONJUNTO EN ZONA FRONTERIZA..."
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-700">
+                    Jurisdicción / Provincia *
+                  </label>
+                  <input
+                    style={campoEstilo}
+                    value={jurisdiccion}
+                    onChange={(e) => setJurisdiccion(e.target.value)}
+                    placeholder="Ej: MISIONES, JUJUY, CABA..."
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-700">Sección / Región RIP</label>
+                  <select
+                    style={campoEstilo}
+                    value={regionRIP}
+                    onChange={(e) => setRegionRIP(e.target.value)}
+                  >
+                    {ESTRUCTURA_TERRITORIAL.filter((r) => r !== "Todas las Regiones").map(
+                      (reg, idx) => (
+                        <option key={idx} value={reg}>
+                          {reg}
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-700">Dimensión / Eje</label>
+                  <select
+                    style={campoEstilo}
+                    value={categoria}
+                    onChange={(e) => setCategoria(e.target.value)}
+                  >
+                    {DIMENSIONES_INFORMATIVAS.filter(
+                      (d) => d !== "Todas las Dimensiones"
+                    ).map((dim, idx) => (
+                      <option key={idx} value={dim}>
+                        {dim}
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>Nivel de Alerta</label>
-                  <select style={campoEstilo} value={alerta} onChange={(e) => setAlerta(e.target.value as NivelAlerta)}>
-                    {NIVELES_ALERTA.map((al, idx) => (
-                      <option key={idx} value={al}>{al}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>Fecha</label>
-                  <input type="date" style={campoEstilo} value={fecha} onChange={(e) => setFecha(e.target.value)} required />
+                  <label className="text-xs font-semibold text-gray-700">Fecha</label>
+                  <input
+                    type="date"
+                    style={campoEstilo}
+                    value={fecha}
+                    onChange={(e) => setFecha(e.target.value)}
+                    required
+                  />
                 </div>
               </div>
 
               <div>
-                <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>Descripción / Análisis *</label>
-                <textarea style={{ ...campoEstilo, height: "90px", resize: "vertical" }} value={descripcion} onChange={(e) => setDescripcion(e.target.value)} required placeholder="Desarrollo de la información o síntesis de inteligencia..." />
+                <label className="text-xs font-semibold text-gray-700">Desarrollo del Hecho *</label>
+                <textarea
+                  style={{ ...campoEstilo, height: "90px", resize: "vertical" }}
+                  value={descripcion}
+                  onChange={(e) => setDescripcion(e.target.value)}
+                  required
+                  placeholder="Desarrollo completo de la información de prensa en lenguaje claro..."
+                />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div>
-                  <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>Fuente de Información</label>
-                  <input style={campoEstilo} value={fuente} onChange={(e) => setFuente(e.target.value)} placeholder="Ej: Monitor OSINT / Diario Oficial..." />
+              {/* INTERROGANTES BÁSICOS FUNDAMENTALES */}
+              <div className="bg-slate-50 p-3 rounded border border-slate-200 space-y-2.5">
+                <div className="text-xs font-bold text-slate-800 uppercase">
+                  Interrogantes Básicos Fundamentales
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Qué</label>
+                    <input
+                      style={campoEstilo}
+                      value={que}
+                      onChange={(e) => setQue(e.target.value)}
+                      placeholder="¿Qué sucedió?"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Quién</label>
+                    <input
+                      style={campoEstilo}
+                      value={quien}
+                      onChange={(e) => setQuien(e.target.value)}
+                      placeholder="¿Quiénes intervienen?"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Cuándo</label>
+                    <input
+                      style={campoEstilo}
+                      value={cuando}
+                      onChange={(e) => setCuando(e.target.value)}
+                      placeholder="¿Cuándo ocurrió?"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700">Cómo</label>
+                    <input
+                      style={campoEstilo}
+                      value={como}
+                      onChange={(e) => setComo(e.target.value)}
+                      placeholder="¿Cómo se desarrolló?"
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>URL de Referencia (Enlace)</label>
-                  <input type="url" style={campoEstilo} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
+                  <label className="text-xs font-semibold text-gray-700">Dónde</label>
+                  <input
+                    style={campoEstilo}
+                    value={donde}
+                    onChange={(e) => setDonde(e.target.value)}
+                    placeholder="¿Dónde ocurrió?"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-700">Medio / Fuente</label>
+                  <input
+                    style={campoEstilo}
+                    value={fuente}
+                    onChange={(e) => setFuente(e.target.value)}
+                    placeholder="Ej: Medio local / Portal de noticias..."
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-700">
+                    Enlace de la Noticia Periodística (URL)
+                  </label>
+                  <input
+                    type="url"
+                    style={campoEstilo}
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="https://..."
+                  />
                 </div>
               </div>
 
               <div>
-                <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155", display: "block", marginBottom: "4px" }}>Selección Rápida de Ubicación Geográfica</label>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "8px" }}>
+                <label className="text-xs font-semibold text-gray-700 block mb-1">
+                  Selección Rápida de Jurisdicción
+                </label>
+                <div className="flex flex-wrap gap-1.5 mb-2">
                   {UBICACIONES_REFERENCIA.map((ref, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => seleccionarReferencia(ref)}
-                      style={{ background: "#f1f5f9", border: "1px solid #cbd5e1", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", cursor: "pointer", fontWeight: "600", color: "#334155" }}
+                      className="bg-slate-100 border border-slate-300 px-2 py-1 rounded text-[11px] font-semibold text-slate-700 hover:bg-slate-200 cursor-pointer"
                     >
-                      📍 {ref.nombre}
+                      {ref.nombre}
                     </button>
                   ))}
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "8px" }}>
-                  <input style={campoEstilo} value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} placeholder="Ubicación o Zona..." />
-                  <input style={campoEstilo} value={latitud} onChange={(e) => setLatitud(e.target.value)} placeholder="Latitud (-27.5)" />
-                  <input style={campoEstilo} value={longitud} onChange={(e) => setLongitud(e.target.value)} placeholder="Longitud (-56.6)" />
-                </div>
+                <input
+                  style={campoEstilo}
+                  value={ubicacion}
+                  onChange={(e) => setUbicacion(e.target.value)}
+                  placeholder="Localidad o punto de referencia..."
+                />
               </div>
 
-              <div>
-                <label style={{ fontSize: "12px", fontWeight: "600", color: "#334155" }}>URL de Imagen Opcional (Dejar en blanco para asignación inteligente)</label>
-                <input type="url" style={campoEstilo} value={imagen} onChange={(e) => setImagen(e.target.value)} placeholder="https://..." />
-              </div>
-
-              <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
+              <div className="flex gap-2 pt-3 border-t border-gray-100">
                 <button type="submit" style={botonInstitucional}>
-                  {modoEdicion ? "Actualizar Registro" : "Guardar en la Plataforma"}
+                  {modoEdicion ? "Actualizar Registro RIP" : "Publicar en el RIP"}
                 </button>
-                {modoEdicion && (
-                  <button type="button" onClick={cancelarEdicion} style={botonGris}>
-                    Cancelar Edición
-                  </button>
-                )}
+                <button type="button" onClick={cancelarEdicion} style={botonGris}>
+                  Cancelar
+                </button>
               </div>
             </form>
           </section>
-
         </main>
-      </div>
+      )}
 
       {/* MODAL AMPLIAR NOTICIA */}
       {noticiaAmpliada && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, padding: "20px" }}>
-          <div style={{ background: "#ffffff", maxWidth: "700px", width: "100%", borderRadius: "6px", overflow: "hidden", boxShadow: "0 10px 25px rgba(0,0,0,0.2)", border: "1px solid #cbd5e1", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
-            <div style={{ background: "#0c231d", color: "#ffffff", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "12px", background: "#14362b", padding: "3px 8px", borderRadius: "4px", fontWeight: "bold", color: "#4ade80" }}>
-                {noticiaAmpliada.categoria}
+        <div className="no-print fixed inset-0 bg-black/60 flex justify-center items-center z-50 p-4">
+          <div className="bg-white max-w-2xl w-full rounded-lg overflow-hidden shadow-2xl border border-gray-300 max-h-[90vh] flex flex-col">
+            <div className="bg-[#0c231d] text-white px-5 py-3.5 flex justify-between items-center">
+              <span className="text-xs bg-[#14362b] px-2.5 py-1 rounded font-bold text-emerald-400">
+                {noticiaAmpliada.regionRIP || "Ámbito Nacional"} • {noticiaAmpliada.categoria}
               </span>
-              <button type="button" onClick={() => setNoticiaAmpliada(null)} style={{ background: "none", border: "none", color: "#ffffff", fontSize: "18px", cursor: "pointer", fontWeight: "bold" }}>
+              <button
+                type="button"
+                onClick={() => setNoticiaAmpliada(null)}
+                className="text-white text-lg font-bold hover:text-gray-300 cursor-pointer"
+              >
                 ✕
               </button>
             </div>
 
-            <div style={{ padding: "20px", overflowY: "auto", flex: 1 }}>
+            <div className="p-5 overflow-y-auto flex-1 space-y-4">
               {noticiaAmpliada.imagen && (
-                <div style={{ width: "100%", height: "240px", borderRadius: "4px", overflow: "hidden", marginBottom: "16px", border: "1px solid #cbd5e1" }}>
-                  <img src={noticiaAmpliada.imagen} alt={noticiaAmpliada.titulo} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <div className="w-full h-60 rounded overflow-hidden border border-gray-200">
+                  <img
+                    src={noticiaAmpliada.imagen}
+                    alt={noticiaAmpliada.titulo}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               )}
 
-              <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "8px" }}>
-                <span style={{ fontSize: "11px", color: "#64748b" }}>📅 {noticiaAmpliada.fecha}</span>
-                {noticiaAmpliada.fuente && <span style={{ fontSize: "11px", color: "#64748b" }}>• Fuente: {noticiaAmpliada.fuente}</span>}
+              <div className="flex items-center gap-3 text-xs text-gray-500">
+                <span>{formatearFechaLargaES(noticiaAmpliada.fecha)}</span>
+                {noticiaAmpliada.fuente && <span>• Fuente: {noticiaAmpliada.fuente}</span>}
               </div>
 
-              <h2 style={{ fontSize: "20px", color: "#0f172a", margin: "0 0 10px", fontWeight: "700", lineHeight: "1.3" }}>
+              <h2 className="text-xl font-bold text-gray-900 leading-snug uppercase">
                 {noticiaAmpliada.titulo}
               </h2>
 
-              {noticiaAmpliada.subtitulo && (
-                <h3 style={{ fontSize: "14px", color: "#334155", margin: "0 0 14px", fontWeight: "600" }}>
-                  {noticiaAmpliada.subtitulo}
-                </h3>
-              )}
-
-              <div style={{ background: "#f8fafc", padding: "14px", borderRadius: "4px", border: "1px solid #e2e8f0", marginBottom: "14px", fontSize: "14px", lineHeight: "1.6", color: "#334155" }}>
+              <div className="bg-slate-50 p-3.5 rounded border border-gray-200 text-sm leading-relaxed text-gray-700 whitespace-pre-line">
+                <strong>{noticiaAmpliada.jurisdiccion || "JURISDICCIÓN"}:</strong>{" "}
                 {noticiaAmpliada.descripcion}
               </div>
 
-              {noticiaAmpliada.puntosClave && (
-                <div style={{ background: "#fefce8", padding: "12px", borderRadius: "4px", border: "1px solid #fef08a", marginBottom: "14px", fontSize: "13px", color: "#713f12", whiteSpace: "pre-line" }}>
-                  <strong>Puntos Clave / Síntesis:</strong>
-                  <div style={{ marginTop: "4px" }}>{noticiaAmpliada.puntosClave}</div>
-                </div>
-              )}
+              {(() => {
+                const interp = completarInterrogantesPorDefecto(noticiaAmpliada);
+                return (
+                  <div className="bg-emerald-50/60 p-3.5 rounded border border-emerald-200 text-xs text-gray-800 space-y-1.5">
+                    <div className="font-bold uppercase text-[#0c231d]">
+                      Interrogantes Básicos Fundamentales
+                    </div>
+                    <div>
+                      <strong>Qué:</strong> {interp.que}
+                    </div>
+                    <div>
+                      <strong>Quién:</strong> {interp.quien}
+                    </div>
+                    <div>
+                      <strong>Cuándo:</strong> {interp.cuando}
+                    </div>
+                    <div>
+                      <strong>Cómo:</strong> {interp.como}
+                    </div>
+                    <div>
+                      <strong>Dónde:</strong> {interp.donde}
+                    </div>
+                  </div>
+                );
+              })()}
 
-              <div style={{ fontSize: "13px", color: "#047857", fontWeight: "600", marginBottom: "14px" }}>
-                📍 Ubicación: {noticiaAmpliada.ubicacion || "Ámbito Nacional"}
-              </div>
+              <div className="border-t border-gray-200 pt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const reg = noticiaAmpliada;
+                    setNoticiaAmpliada(null);
+                    abrirVistaRIPIndividual(reg);
+                  }}
+                  style={{ ...botonInstitucional, background: "#0c231d" }}
+                >
+                  Generar Documento RIP / PDF
+                </button>
 
-              {noticiaAmpliada.url && (
-                <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "12px" }}>
-                  <a href={noticiaAmpliada.url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", background: "#0284c7", color: "#ffffff", padding: "8px 14px", borderRadius: "4px", textDecoration: "none", fontSize: "13px", fontWeight: "bold" }}>
-                    🔗 Acceder a la Fuente Externa
+                {noticiaAmpliada.url && (
+                  <a
+                    href={noticiaAmpliada.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block bg-sky-600 text-white px-3.5 py-2 rounded text-xs font-bold hover:bg-sky-700"
+                  >
+                    Ir a la Noticia Periodística
                   </a>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
 
+      {/* MODAL DOCUMENTO RIP (FORMATO MODELO ENFOQUE 360) */}
+      {reportesParaRIP && (
+        <div className="fixed inset-0 bg-black/75 flex justify-center items-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white max-w-[820px] w-full rounded shadow-2xl max-h-[94vh] flex flex-col">
+            <div className="no-print bg-[#0c231d] text-white px-5 py-3 flex justify-between items-center">
+              <span className="text-xs font-bold text-emerald-400">
+                ENFOQUE 360 — RESUMEN DE INFORMACIÓN DE PRENSA (RIP) —{" "}
+                {formatearFechaLargaES(fechaParteRIP)}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={ejecutarImpresionRIP}
+                  className="bg-emerald-600 text-white border-none px-3.5 py-1.5 rounded font-bold text-xs hover:bg-emerald-700 cursor-pointer"
+                >
+                  Imprimir / Guardar PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReportesParaRIP(null)}
+                  className="bg-slate-700 text-white border-none px-3 py-1.5 rounded font-bold text-xs hover:bg-slate-800 cursor-pointer"
+                >
+                  Cerrar ✕
+                </button>
+              </div>
+            </div>
+
+            <div
+              id="documento-rip-imprimible"
+              className="p-8 overflow-y-auto font-sans text-black bg-white flex-1"
+            >
+              <div className="text-center mb-6">
+                <div className="text-xs font-bold tracking-wider uppercase text-gray-700">
+                  ENFOQUE 360
+                </div>
+                <div className="text-sm font-bold tracking-wide uppercase text-black mt-0.5">
+                  Resumen de Información de Prensa
+                </div>
+                <div className="text-xs font-semibold text-gray-800 mt-1">
+                  {formatearFechaLargaES(fechaParteRIP)}
+                </div>
+              </div>
+
+              {seccionesAgrupadasRIP.map((grupo) => (
+                <div key={grupo.nombre} className="mb-6">
+                  <div className="text-xs font-bold uppercase text-black border-b border-black pb-1 mb-3">
+                    {grupo.nombre}
+                  </div>
+
+                  <div className="space-y-4">
+                    {grupo.items.map((item) => {
+                      const interp = completarInterrogantesPorDefecto(item);
+                      return (
+                        <div key={item.id} className="text-xs leading-relaxed">
+                          <div className="font-bold uppercase text-black mb-0.5">
+                            {item.titulo}
+                          </div>
+                          <div className="text-gray-900 text-justify mb-1.5">
+                            <span className="font-bold">
+                              {(item.jurisdiccion || item.ubicacion || "JURISDICCIÓN").toUpperCase()}:
+                            </span>{" "}
+                            {item.descripcion}
+                          </div>
+                          <div className="text-gray-800 pl-2 border-l-2 border-gray-400 space-y-0.5 mb-1">
+                            <div>
+                              <span className="font-bold">Qué:</span> {interp.que}
+                            </div>
+                            <div>
+                              <span className="font-bold">Quién:</span> {interp.quien}
+                            </div>
+                            <div>
+                              <span className="font-bold">Cuándo:</span> {interp.cuando}
+                            </div>
+                            <div>
+                              <span className="font-bold">Cómo:</span> {interp.como}
+                            </div>
+                            <div>
+                              <span className="font-bold">Dónde:</span> {interp.donde}
+                            </div>
+                          </div>
+                          {item.url && (
+                            <div className="text-[11px] text-blue-800 break-all mt-0.5">
+                              <a
+                                href={item.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline hover:text-blue-950"
+                              >
+                                {item.url}
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              <div className="border-t border-gray-400 pt-3 mt-8 text-center text-[11px] font-semibold text-gray-800">
+                ENFOQUE 360
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
